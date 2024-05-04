@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -24,15 +24,23 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "matplotlib",
+  "numpy",
+  "pyside6",
+  "seaborn"
+]
 
 [project.urls]
-Documentation = "https://github.com/Brian McClune/pyrfeqt#readme"
-Issues = "https://github.com/Brian McClune/pyrfeqt/issues"
-Source = "https://github.com/Brian McClune/pyrfeqt"
+Documentation = "https://github.com/McClunatic/pyrfeqt#readme"
+Issues = "https://github.com/McClunatic/pyrfeqt/issues"
+Source = "https://github.com/McClunatic/pyrfeqt"
 
 [tool.hatch.version]
-path = "src/pyrfeqt/__about__.py"
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/pyrfeqt/__about__.py"
 
 [tool.hatch.envs.types]
 extra-dependencies = [
