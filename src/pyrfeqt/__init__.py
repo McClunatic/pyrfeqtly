@@ -4,7 +4,7 @@
 import os
 import random
 from typing import Optional, Union
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 
 
 class FileProxyModel(QtCore.QSortFilterProxyModel):
@@ -29,16 +29,89 @@ class FileProxyModel(QtCore.QSortFilterProxyModel):
             sourceRow, sourceParent)
 
 
-class MyWidget(QtWidgets.QWidget):
+class MyWidget(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.hello = ["Hallo Welt", "Hei maailma", "Hola Mundo", "Привет мир"]
+        self.widget = QtWidgets.QWidget()
+        self.setCentralWidget(self.widget)
 
+        self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
+        self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
+        self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
+
+        self.createFileActions()
+        self.createEditActions()
+        self.createHelpActions()
+
+        self.createHelloWidgets()
+        self.createDirWidgets()
+        self.buildLayout()
+
+    def createFileActions(self):
+        self.newAct = QtGui.QAction(
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentNew),
+            self.tr('&New'),
+            self)
+        self.newAct.setShortcut(QtGui.QKeySequence.StandardKey.New)
+        self.newAct.setStatusTip(self.tr('Create a new file'))
+        # TODO: connect self.newAct to function
+
+        self.openAct = QtGui.QAction(
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentOpen),
+            self.tr('&Open...'),
+            self)
+        self.openAct.setShortcut(QtGui.QKeySequence.StandardKey.Open)
+        self.openAct.setStatusTip(self.tr('Open an existing file'))
+        # TODO: connect self.openAct to function
+
+        self.saveAct = QtGui.QAction(
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentSave),
+            self.tr('&Save'),
+            self)
+        self.saveAct.setShortcut(QtGui.QKeySequence.StandardKey.Save)
+        self.saveAct.setStatusTip(self.tr('Save the file to disk'))
+        # TODO: connect self.saveAct to function
+
+        self.fileMenu.addAction(self.newAct)
+        self.fileMenu.addAction(self.openAct)
+        self.fileMenu.addAction(self.saveAct)
+
+    def createEditActions(self):
+        self.editAct = QtGui.QAction(
+            self.tr('&Edit'), self)
+        self.editAct.setStatusTip(self.tr('Edit current configuration'))
+        # TODO: connect self.editAct to function
+
+        self.prefAct = QtGui.QAction(
+            self.tr('&Preferences...'), self)
+        self.prefAct.setShortcut(QtGui.QKeySequence.StandardKey.Preferences)
+        self.openAct.setStatusTip(self.tr('Edit preferences'))
+        # TODO: connect self.prefAct to function
+
+        self.editMenu.addAction(self.editAct)
+        self.editMenu.addSeparator()
+        self.editMenu.addAction(self.prefAct)
+
+    def createHelpActions(self):
+        self.aboutAct = QtGui.QAction(
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.HelpAbout),
+            self.tr('&About'),
+            self)
+        self.newAct.setStatusTip(self.tr('Show about'))
+        # TODO: connect self.aboutAct to function
+
+        self.helpMenu.addAction(self.aboutAct)
+
+    def createHelloWidgets(self):
+        self.hello = ["Hallo Welt", "Hei maailma", "Hola Mundo", "Привет мир"]
         self.button = QtWidgets.QPushButton("Click me!")
         self.text = QtWidgets.QLabel("Hello World",
                                      alignment=QtCore.Qt.AlignCenter)
 
+        self.button.clicked.connect(self.magic)
+
+    def createDirWidgets(self):
         current_dir = QtCore.QDir.currentPath()
         parent_dir = os.path.dirname(current_dir)
 
@@ -58,12 +131,12 @@ class MyWidget(QtWidgets.QWidget):
         self.list.setRootIndex(
             self.proxy.mapFromSource(self.model.index(parent_dir)))
 
-        self.layout = QtWidgets.QVBoxLayout(self)
+    def buildLayout(self):
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.addWidget(self.splitter)
         self.layout.addWidget(self.text)
         self.layout.addWidget(self.button)
-
-        self.button.clicked.connect(self.magic)
+        self.widget.setLayout(self.layout)
 
     @QtCore.Slot()
     def magic(self):
