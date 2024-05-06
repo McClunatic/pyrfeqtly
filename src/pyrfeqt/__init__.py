@@ -44,9 +44,40 @@ class MyWidget(QtWidgets.QMainWindow):
         self.createEditActions()
         self.createHelpActions()
 
+        # Create settings sliders
+        self.sliderBox = QtWidgets.QGroupBox()
+        self.sliderLeft = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.sliderCenter = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.sliderRight = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
+        self.configureSliders()
+        self.sliderLayout = QtWidgets.QVBoxLayout()
+        self.sliderLayout.addWidget(self.sliderLeft)
+        self.sliderLayout.addWidget(self.sliderCenter)
+        self.sliderLayout.addWidget(self.sliderRight)
+        self.sliderBox.setLayout(self.sliderLayout)
+
+        # Create tree views
+        self.list = ['One', 'Two', 'Three']
+        self.listBox = QtWidgets.QGroupBox()
+        self.listModel = QtCore.QStringListModel()
+        self.listModel.setStringList(self.list)
+        self.listView = QtWidgets.QListView()
+        self.listView.setModel(self.listModel)
+        self.listLayout = QtWidgets.QHBoxLayout()
+        self.listLayout.addWidget(self.listView)
+        self.listBox.setLayout(self.listLayout)
+
         self.createHelloWidgets()
         self.createDirWidgets()
         self.buildLayout()
+
+    def configureSliders(self):
+        for slider in [self.sliderLeft, self.sliderCenter, self.sliderRight]:
+            slider.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+            slider.setTickPosition(
+                QtWidgets.QSlider.TickPosition.TicksBothSides)
+            slider.setTickInterval(10)
+            slider.setSingleStep(1)
 
     def createFileActions(self):
         self.newAct = QtGui.QAction(
@@ -132,10 +163,18 @@ class MyWidget(QtWidgets.QMainWindow):
             self.proxy.mapFromSource(self.model.index(parent_dir)))
 
     def buildLayout(self):
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.splitter)
-        self.layout.addWidget(self.text)
-        self.layout.addWidget(self.button)
+        sideLayout = QtWidgets.QVBoxLayout()
+        sideLayout.addWidget(self.sliderBox)
+        sideLayout.addWidget(self.listBox)
+
+        bigLayout = QtWidgets.QVBoxLayout()
+        bigLayout.addWidget(self.splitter)
+        bigLayout.addWidget(self.text)
+        bigLayout.addWidget(self.button)
+
+        self.layout = QtWidgets.QHBoxLayout()
+        self.layout.addLayout(sideLayout)
+        self.layout.addLayout(bigLayout, stretch=1)
         self.widget.setLayout(self.layout)
 
     @QtCore.Slot()
