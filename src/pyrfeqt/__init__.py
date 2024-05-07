@@ -62,6 +62,8 @@ class MyWidget(QtWidgets.QMainWindow):
         self.listModel = QtCore.QStringListModel()
         self.listModel.setStringList(self.list)
         self.listView = QtWidgets.QListView()
+        self.listView.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.listView.setModel(self.listModel)
         self.listLayout = QtWidgets.QHBoxLayout()
         self.listLayout.addWidget(self.listView)
