@@ -76,9 +76,6 @@ class MyWidget(QtWidgets.QMainWindow):
     def configureSliders(self):
         for slider in [self.sliderLeft, self.sliderCenter, self.sliderRight]:
             slider.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-            slider.setTickPosition(
-                QtWidgets.QSlider.TickPosition.TicksBothSides)
-            slider.setTickInterval(10)
             slider.setSingleStep(1)
 
     def createFileActions(self):
