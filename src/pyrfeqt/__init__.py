@@ -2,32 +2,9 @@
 #
 # SPDX-License-Identifier: MIT
 import random
-from typing import Optional, Union
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from . import widgets
-
-
-class FileProxyModel(QtCore.QSortFilterProxyModel):
-    """See:
-
-    https://stackoverflow.com/questions/53430989/pyside-qfilesystemmodel-display-show-root-item
-    """
-    def __init__(
-        self,
-        index: Union[QtCore.QModelIndex, QtCore.QPersistentModelIndex],
-        parent: Optional[QtCore.QObject] = None,
-    ) -> None:
-        self._rootIndex = index
-        super(FileProxyModel, self).__init__(parent)
-
-    def filterAcceptsRow(self, sourceRow, sourceParent):
-        sourceIndex = self.sourceModel().index(sourceRow, 0, sourceParent)
-        if self._rootIndex.parent() == sourceParent and \
-                self._rootIndex != sourceIndex:
-            return False
-        return super(FileProxyModel, self).filterAcceptsRow(
-            sourceRow, sourceParent)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -51,8 +28,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create tree views
         self.sourcesBox = widgets.DataSourcesGroupBox('Data sources', self)
 
-        self.createHelloWidgets()
-        self.buildLayout()
+        # Create canvases widget
+        self.canvasWidget = widgets.CanvasesWidget(self)
+
+        # Create layout
+        sideLayout = QtWidgets.QVBoxLayout()
+        sideLayout.addWidget(self.sliderBox)
+        sideLayout.addWidget(self.sourcesBox)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(sideLayout)
+        layout.addWidget(self.canvasWidget, stretch=1)
+        self.widget.setLayout(layout)
 
     def createFileActions(self):
         self.newAct = QtGui.QAction(
@@ -108,28 +95,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # TODO: connect self.aboutAct to function
 
         self.helpMenu.addAction(self.aboutAct)
-
-    def createHelloWidgets(self):
-        self.hello = ["Hallo Welt", "Hei maailma", "Hola Mundo", "Привет мир"]
-        self.button = QtWidgets.QPushButton("Click me!")
-        self.text = QtWidgets.QLabel("Hello World",
-                                     alignment=QtCore.Qt.AlignCenter)
-
-        self.button.clicked.connect(self.magic)
-
-    def buildLayout(self):
-        sideLayout = QtWidgets.QVBoxLayout()
-        sideLayout.addWidget(self.sliderBox)
-        sideLayout.addWidget(self.sourcesBox)
-
-        bigLayout = QtWidgets.QVBoxLayout()
-        bigLayout.addWidget(self.text)
-        bigLayout.addWidget(self.button)
-
-        self.layout = QtWidgets.QHBoxLayout()
-        self.layout.addLayout(sideLayout)
-        self.layout.addLayout(bigLayout, stretch=1)
-        self.widget.setLayout(self.layout)
 
     @QtCore.Slot()
     def magic(self):
