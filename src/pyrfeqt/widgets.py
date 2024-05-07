@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import pathlib
 from typing import Optional
 from PySide6 import QtCore, QtWidgets
 
@@ -77,3 +78,51 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
         layout.addWidget(radioWidget, 3, 0, 1, 5)
         self.setLayout(layout)
+
+
+class DataSourcesGroupBox(QtWidgets.QGroupBox):
+    def __init__(
+        self,
+        title: str,
+        parent: Optional[QtWidgets.QWidget] = None,
+    ) -> None:
+        """Constructor."""
+        super(DataSourcesGroupBox, self).__init__(title=title, parent=parent)
+
+        demo_paths = [
+            str(pathlib.Path.cwd()),
+            str(pathlib.Path.cwd().parent)
+        ]
+        self.listModel = QtCore.QStringListModel(demo_paths)
+        self.treeModel = QtWidgets.QFileSystemModel()
+
+        self.listView = QtWidgets.QListView()
+        self.listView.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.listView.setModel(self.listModel)
+
+        self.listView.selectionModel().selectionChanged.connect(
+            self.updateTreeView)
+
+        self.treeView = QtWidgets.QTreeView()
+        self.treeView.setModel(self.treeModel)
+        policy = self.treeView.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        self.treeView.setSizePolicy(policy)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.listView)
+        layout.addWidget(self.treeView)
+        self.setLayout(layout)
+
+    @QtCore.Slot(QtCore.QItemSelection, QtCore.QItemSelection)
+    def updateTreeView(self, selected, deselected):
+        if self.listView.selectionModel().hasSelection():
+            indexes = self.listView.selectionModel().selectedIndexes()
+            rootPath = QtCore.QDir.fromNativeSeparators(
+                self.listModel.data(indexes[0]))
+            self.treeModel.setRootPath(rootPath)
+            self.treeView.setRootIndex(self.treeModel.index(rootPath))
+            self.treeView.show()
+        else:
+            self.treeView.hide()

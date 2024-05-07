@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2024-present Brian McClune <bpmcclune@gmail.com>
 #
 # SPDX-License-Identifier: MIT
-import os
 import random
 from typing import Optional, Union
 from PySide6 import QtCore, QtWidgets, QtGui
@@ -50,20 +49,9 @@ class MyWidget(QtWidgets.QMainWindow):
         self.sliderBox = widgets.PlotOptionsGroupBox('Plot options', self)
 
         # Create tree views
-        self.list = ['One', 'Two', 'Three']
-        self.listBox = QtWidgets.QGroupBox()
-        self.listModel = QtCore.QStringListModel()
-        self.listModel.setStringList(self.list)
-        self.listView = QtWidgets.QListView()
-        self.listView.setSelectionMode(
-            QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.listView.setModel(self.listModel)
-        self.listLayout = QtWidgets.QHBoxLayout()
-        self.listLayout.addWidget(self.listView)
-        self.listBox.setLayout(self.listLayout)
+        self.sourcesBox = widgets.DataSourcesGroupBox('Data sources', self)
 
         self.createHelloWidgets()
-        self.createDirWidgets()
         self.buildLayout()
 
     def createFileActions(self):
@@ -129,33 +117,12 @@ class MyWidget(QtWidgets.QMainWindow):
 
         self.button.clicked.connect(self.magic)
 
-    def createDirWidgets(self):
-        current_dir = QtCore.QDir.currentPath()
-        parent_dir = os.path.dirname(current_dir)
-
-        self.model = QtWidgets.QFileSystemModel()
-        self.model.setRootPath(parent_dir)
-        self.splitter = QtWidgets.QSplitter()
-        self.tree = QtWidgets.QTreeView(self.splitter)
-        self.list = QtWidgets.QListView(self.splitter)
-        self.proxy = FileProxyModel(
-            QtCore.QPersistentModelIndex(
-                self.model.index(current_dir)))
-        self.proxy.setSourceModel(self.model)
-        self.tree.setModel(self.proxy)
-        self.tree.setRootIndex(
-            self.proxy.mapFromSource(self.model.index(parent_dir)))
-        self.list.setModel(self.proxy)
-        self.list.setRootIndex(
-            self.proxy.mapFromSource(self.model.index(parent_dir)))
-
     def buildLayout(self):
         sideLayout = QtWidgets.QVBoxLayout()
         sideLayout.addWidget(self.sliderBox)
-        sideLayout.addWidget(self.listBox)
+        sideLayout.addWidget(self.sourcesBox)
 
         bigLayout = QtWidgets.QVBoxLayout()
-        bigLayout.addWidget(self.splitter)
         bigLayout.addWidget(self.text)
         bigLayout.addWidget(self.button)
 
