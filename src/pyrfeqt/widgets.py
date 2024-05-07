@@ -17,8 +17,10 @@ class PlotSettingsGroupBox(QtWidgets.QGroupBox):
 
         self.maxi = 720
         self.ranges = [[0, self.maxi]] * 3
+        self.multimodes = ['Multi-line', 'Sum', 'Average']
         self.sliders = []
         self.spinboxes = []
+        self.radios = []
 
         # Create QSlider and QSpinBox widgets
         for idx, (mini, maxi) in enumerate(self.ranges):
@@ -50,6 +52,18 @@ class PlotSettingsGroupBox(QtWidgets.QGroupBox):
             self.sliders.append(sliders)
             self.spinboxes.append(spinboxes)
 
+        # Create multi-source radio button options
+        radioWidget = QtWidgets.QWidget()
+        radioLayout = QtWidgets.QHBoxLayout()
+        for mode in self.multimodes:
+            radio = QtWidgets.QRadioButton(self.tr(mode))
+            self.radios.append(radio)
+
+            radioLayout.addWidget(radio)
+
+        self.radios[0].setChecked(True)
+        radioWidget.setLayout(radioLayout)
+
         # Create layout
         layout = QtWidgets.QGridLayout()
         layout.setColumnMinimumWidth(3, 8)
@@ -61,4 +75,5 @@ class PlotSettingsGroupBox(QtWidgets.QGroupBox):
             layout.addWidget(self.sliders[row][1], row, 3)
             layout.addWidget(self.spinboxes[row][1], row, 4)
 
+        layout.addWidget(radioWidget, 3, 0, 1, 5)
         self.setLayout(layout)
