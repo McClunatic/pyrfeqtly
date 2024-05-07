@@ -6,6 +6,8 @@ import random
 from typing import Optional, Union
 from PySide6 import QtCore, QtWidgets, QtGui
 
+from . import widgets
+
 
 class FileProxyModel(QtCore.QSortFilterProxyModel):
     """See:
@@ -45,16 +47,7 @@ class MyWidget(QtWidgets.QMainWindow):
         self.createHelpActions()
 
         # Create settings sliders
-        self.sliderBox = QtWidgets.QGroupBox()
-        self.sliderLeft = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
-        self.sliderCenter = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
-        self.sliderRight = QtWidgets.QSlider(QtCore.Qt.Orientation.Horizontal)
-        self.configureSliders()
-        self.sliderLayout = QtWidgets.QVBoxLayout()
-        self.sliderLayout.addWidget(self.sliderLeft)
-        self.sliderLayout.addWidget(self.sliderCenter)
-        self.sliderLayout.addWidget(self.sliderRight)
-        self.sliderBox.setLayout(self.sliderLayout)
+        self.sliderBox = widgets.PlotSettingsGroupBox('Plot options', self)
 
         # Create tree views
         self.list = ['One', 'Two', 'Three']
@@ -72,11 +65,6 @@ class MyWidget(QtWidgets.QMainWindow):
         self.createHelloWidgets()
         self.createDirWidgets()
         self.buildLayout()
-
-    def configureSliders(self):
-        for slider in [self.sliderLeft, self.sliderCenter, self.sliderRight]:
-            slider.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
-            slider.setSingleStep(1)
 
     def createFileActions(self):
         self.newAct = QtGui.QAction(
