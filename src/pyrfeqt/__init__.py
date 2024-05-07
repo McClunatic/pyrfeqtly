@@ -30,9 +30,9 @@ class FileProxyModel(QtCore.QSortFilterProxyModel):
             sourceRow, sourceParent)
 
 
-class MyWidget(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(MainWindow, self).__init__()
 
         self.widget = QtWidgets.QWidget()
         self.setCentralWidget(self.widget)

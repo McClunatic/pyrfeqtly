@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: MIT
 import sys
 from PySide6 import QtWidgets
-from pyrfeqt import MyWidget
+from pyrfeqt import MainWindow
 
 app = QtWidgets.QApplication([])
 
-widget = MyWidget()
+widget = MainWindow()
 widget.resize(800, 600)
 widget.show()
 
