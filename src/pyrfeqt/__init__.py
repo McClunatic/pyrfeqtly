@@ -47,7 +47,7 @@ class MyWidget(QtWidgets.QMainWindow):
         self.createHelpActions()
 
         # Create settings sliders
-        self.sliderBox = widgets.PlotSettingsGroupBox('Plot options', self)
+        self.sliderBox = widgets.PlotOptionsGroupBox('Plot options', self)
 
         # Create tree views
         self.list = ['One', 'Two', 'Three']

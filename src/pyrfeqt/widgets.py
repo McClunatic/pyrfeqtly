@@ -6,14 +6,14 @@ from typing import Optional
 from PySide6 import QtCore, QtWidgets
 
 
-class PlotSettingsGroupBox(QtWidgets.QGroupBox):
+class PlotOptionsGroupBox(QtWidgets.QGroupBox):
     def __init__(
         self,
         title: str,
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
-        super(PlotSettingsGroupBox, self).__init__(title=title, parent=parent)
+        super(PlotOptionsGroupBox, self).__init__(title=title, parent=parent)
 
         self.maxi = 720
         self.ranges = [[0, self.maxi]] * 3
