@@ -104,15 +104,26 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         self.listView.selectionModel().selectionChanged.connect(
             self.updateTreeView)
 
+        self.buttonWidget = QtWidgets.QWidget()
+        self.newButton = QtWidgets.QPushButton(self.tr("Add source"))
+        self.removeButton = QtWidgets.QPushButton(self.tr("Remove source(s)"))
+        self.removeButton.setEnabled(False)
+        buttonLayout = QtWidgets.QHBoxLayout()
+        buttonLayout.addWidget(self.newButton)
+        buttonLayout.addWidget(self.removeButton)
+        self.buttonWidget.setLayout(buttonLayout)
+
         self.treeView = QtWidgets.QTreeView()
         self.treeView.setModel(self.treeModel)
         policy = self.treeView.sizePolicy()
         policy.setRetainSizeWhenHidden(True)
         self.treeView.setSizePolicy(policy)
+        self.treeView.hide()
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.listView)
-        layout.addWidget(self.treeView)
+        layout.addWidget(self.buttonWidget)
+        layout.addWidget(self.treeView, stretch=1)
         self.setLayout(layout)
 
     @QtCore.Slot(QtCore.QItemSelection, QtCore.QItemSelection)
@@ -123,6 +134,9 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
                 self.listModel.data(indexes[0]))
             self.treeModel.setRootPath(rootPath)
             self.treeView.setRootIndex(self.treeModel.index(rootPath))
+
+            self.removeButton.setEnabled(True)
             self.treeView.show()
         else:
+            self.removeButton.setEnabled(False)
             self.treeView.hide()
