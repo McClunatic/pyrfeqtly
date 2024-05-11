@@ -27,6 +27,9 @@ classifiers = [
 dependencies = [
   "matplotlib",
   "numpy",
+  "PyOpenGL",
+  "PyOpenGL_accelerate",
+  "pyqtgraph",
   "pyside6",
   "seaborn"
 ]
