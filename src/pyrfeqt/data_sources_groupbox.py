@@ -18,14 +18,12 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         """Constructor."""
         super(DataSourcesGroupBox, self).__init__(title=title, parent=parent)
 
-        demo_paths = [
-            str(pathlib.Path.cwd()),
-            str(pathlib.Path.cwd().parent)
-        ]
-        self.listModel = QtCore.QStringListModel(demo_paths)
+        self.listModel = QtCore.QStringListModel()
         self.treeModel = QtWidgets.QFileSystemModel()
 
         self.listView = QtWidgets.QListView()
+        self.listView.setSizeAdjustPolicy(
+            QtWidgets.QListView.SizeAdjustPolicy.AdjustToContents)
         self.listView.setSelectionMode(
             QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.listView.setModel(self.listModel)
@@ -35,7 +33,9 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
         self.buttonWidget = QtWidgets.QWidget()
         self.newButton = QtWidgets.QPushButton(self.tr("Add source"))
+        self.newButton.clicked.connect(self.addSource)
         self.removeButton = QtWidgets.QPushButton(self.tr("Remove source(s)"))
+        self.removeButton.clicked.connect(self.removeSources)
         self.removeButton.setEnabled(False)
         buttonLayout = QtWidgets.QHBoxLayout()
         buttonLayout.addWidget(self.newButton)
@@ -59,8 +59,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
     def updateTreeView(self, selected, deselected):
         if self.listView.selectionModel().hasSelection():
             indexes = self.listView.selectionModel().selectedIndexes()
-            rootPath = QtCore.QDir.fromNativeSeparators(
-                self.listModel.data(indexes[0]))
+            rootPath = self.listModel.data(indexes[0])
             self.treeModel.setRootPath(rootPath)
             self.treeView.setRootIndex(self.treeModel.index(rootPath))
 
@@ -69,3 +68,24 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         else:
             self.removeButton.setEnabled(False)
             self.treeView.hide()
+
+    @QtCore.Slot()
+    def addSource(self):
+        source = QtWidgets.QFileDialog.getExistingDirectory(
+            self,
+            self.tr("Select data source directory"),
+            str(pathlib.Path.cwd()),
+            QtWidgets.QFileDialog.Option.ShowDirsOnly)
+        sourceList = self.listModel.stringList()
+        if source not in sourceList:
+            if self.listModel.insertRows(self.listModel.rowCount(), 1):
+                index = self.listModel.index(self.listModel.rowCount() - 1, 0)
+                self.listModel.setData(index, source)
+                self.listView.adjustSize()
+
+    @QtCore.Slot()
+    def removeSources(self):
+        indexes = self.listView.selectionModel().selectedIndexes()
+        for index in indexes[::-1]:
+            self.listModel.removeRow(index.row())
+        self.listView.adjustSize()
