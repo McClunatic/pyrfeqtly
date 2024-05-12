@@ -19,6 +19,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         super(DataSourcesGroupBox, self).__init__(title=title, parent=parent)
 
         self.listModel = QtGui.QStandardItemModel()
+        self.listModel.itemChanged.connect(self.onItemChanged)
         self.treeModel = QtWidgets.QFileSystemModel()
 
         self.listView = QtWidgets.QListView()
@@ -79,11 +80,19 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         if not self.listModel.findItems(source):
             item = QtGui.QStandardItem(source)
             item.setCheckable(True)
-            item.setCheckState(QtCore.Qt.CheckState.Checked)
             self.listModel.appendRow(item)
+            # Check the item to trigger onItemChanged after appending
+            item.setCheckState(QtCore.Qt.CheckState.Checked)
 
     @QtCore.Slot()
     def removeSources(self):
         indexes = self.listView.selectionModel().selectedIndexes()
         for index in indexes[::-1]:
+            # Uncheck the item to trigger onItemChanged before removing
+            self.listModel.itemFromIndex(index).setCheckState(
+                QtCore.Qt.CheckState.Unchecked)
             self.listModel.removeRow(index.row())
+
+    @QtCore.Slot(QtGui.QStandardItem)
+    def onItemChanged(self, item):
+        print(f'{item=}, {item.text()=}, {item.checkState()}')
