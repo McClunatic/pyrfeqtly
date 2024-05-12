@@ -6,7 +6,7 @@
 import pathlib
 from typing import Optional
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class DataSourcesGroupBox(QtWidgets.QGroupBox):
@@ -18,7 +18,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         """Constructor."""
         super(DataSourcesGroupBox, self).__init__(title=title, parent=parent)
 
-        self.listModel = QtCore.QStringListModel()
+        self.listModel = QtGui.QStandardItemModel()
         self.treeModel = QtWidgets.QFileSystemModel()
 
         self.listView = QtWidgets.QListView()
@@ -76,16 +76,14 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             self.tr("Select data source directory"),
             str(pathlib.Path.cwd()),
             QtWidgets.QFileDialog.Option.ShowDirsOnly)
-        sourceList = self.listModel.stringList()
-        if source not in sourceList:
-            if self.listModel.insertRows(self.listModel.rowCount(), 1):
-                index = self.listModel.index(self.listModel.rowCount() - 1, 0)
-                self.listModel.setData(index, source)
-                self.listView.adjustSize()
+        if not self.listModel.findItems(source):
+            item = QtGui.QStandardItem(source)
+            item.setCheckable(True)
+            item.setCheckState(QtCore.Qt.CheckState.Checked)
+            self.listModel.appendRow(item)
 
     @QtCore.Slot()
     def removeSources(self):
         indexes = self.listView.selectionModel().selectedIndexes()
         for index in indexes[::-1]:
             self.listModel.removeRow(index.row())
-        self.listView.adjustSize()
