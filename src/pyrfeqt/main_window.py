@@ -9,7 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .data_sources_groupbox import DataSourcesGroupBox
 from .plot_options_groupbox import PlotOptionsGroupBox
-from .graph_widgets import GraphicsLayoutWidget
+from .graph_layout_widget import GraphicsLayoutWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
