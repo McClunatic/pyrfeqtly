@@ -10,6 +10,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class DataSourcesGroupBox(QtWidgets.QGroupBox):
+
+    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
+
     def __init__(
         self,
         title: str,
@@ -95,4 +98,4 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(QtGui.QStandardItem)
     def onItemChanged(self, item):
-        print(f'{item=}, {item.text()=}, {item.checkState()}')
+        self.sourceChanged.emit(item.text(), item.checkState())

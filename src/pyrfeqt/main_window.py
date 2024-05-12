@@ -50,6 +50,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.sliderBox.rangeChanged.connect(self.canvasWidget.updateRange)
         self.canvasWidget.rangeChanged.connect(self.sliderBox.updateRange)
 
+        self.sourcesBox.sourceChanged.connect(self.canvasWidget.updateWatcher)
+
     def createFileActions(self):
         self.newAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentNew),
