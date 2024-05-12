@@ -9,7 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .data_sources_groupbox import DataSourcesGroupBox
 from .plot_options_groupbox import PlotOptionsGroupBox
-from .graph_layout_widget import GraphicsLayoutWidget
+from .graph_layout_widget import GraphicsWidget
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Create canvases widget
         # self.canvasWidget = widgets.CanvasesWidget(self)
-        self.canvasWidget = GraphicsLayoutWidget(self)
+        self.canvasWidget = GraphicsWidget(self)
 
         # Create layout
         sideLayout = QtWidgets.QVBoxLayout()
@@ -46,6 +46,9 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addLayout(sideLayout)
         layout.addWidget(self.canvasWidget, stretch=1)
         self.widget.setLayout(layout)
+
+        self.sliderBox.rangeChanged.connect(self.canvasWidget.updateRange)
+        self.canvasWidget.rangeChanged.connect(self.sliderBox.updateRange)
 
     def createFileActions(self):
         self.newAct = QtGui.QAction(

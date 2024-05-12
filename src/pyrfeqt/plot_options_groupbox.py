@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 """Defines the plot options groupbox class."""
-
+from functools import partial
 from typing import List, Optional
 
 from PySide6 import QtCore, QtWidgets
@@ -14,6 +14,9 @@ class QSpinBox(QtWidgets.QSpinBox):
 
 
 class SpinBoxStack(QtWidgets.QWidget):
+
+    valueChanged = QtCore.Signal(int, int, int)
+
     def __init__(
         self,
         minimum: int,
@@ -30,15 +33,27 @@ class SpinBoxStack(QtWidgets.QWidget):
             spinRow = []
             for col in range(2):
                 spin = QSpinBox()
+                spin.setKeyboardTracking(False)
                 spin.setRange(minimum, maximum)
-                spin.setValue(maximum)
-                # spin.adjustSize()
+                spin.setValue(minimum if col == 0 else maximum)
+                spin.valueChanged.connect(
+                    partial(self.onValueChanged, row=row, col=col))
                 layout.addWidget(spin, row, col)
 
                 spinRow.append(spin)
             self.spins.append(spinRow)
 
         self.setLayout(layout)
+
+    @QtCore.Slot(int)
+    def onValueChanged(self, value: int, row: int, col: int):
+        otherCol = (col + 1) % 2
+        otherValue = self.spins[row][otherCol].value()
+        if (col - otherCol) * (value - otherValue) < 0:
+            self.spins[row][col].setValue(otherValue)
+            self.spins[row][otherCol].setValue(value)
+
+        self.valueChanged.emit(row, *sorted((value, otherValue)))
 
 
 class MultiModeBox(QtWidgets.QWidget):
@@ -59,6 +74,9 @@ class MultiModeBox(QtWidgets.QWidget):
 
 
 class PlotOptionsGroupBox(QtWidgets.QGroupBox):
+
+    rangeChanged = QtCore.Signal(int, int, int)
+
     def __init__(
         self,
         title: str,
@@ -70,6 +88,8 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         layout = QtWidgets.QFormLayout()
 
         self.axisRanges = SpinBoxStack(0, 720, parent=self)
+        self.axisRanges.valueChanged.connect(self.rangeChanged)
+
         self.aggregationMode = MultiModeBox(
             ['none (multi-line)', 'sum', 'average'], self)
 
@@ -77,3 +97,10 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         layout.addRow('Aggregation mode', self.aggregationMode)
 
         self.setLayout(layout)
+
+    @QtCore.Slot(int, int, int)
+    def updateRange(self, row: int, minimum: int, maximum: int):
+        self.axisRanges.blockSignals(True)
+        self.axisRanges.spins[row][0].setValue(minimum)
+        self.axisRanges.spins[row][1].setValue(maximum)
+        self.axisRanges.blockSignals(False)
