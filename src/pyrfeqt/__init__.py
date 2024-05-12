@@ -5,6 +5,7 @@ import random
 from PySide6 import QtCore, QtWidgets, QtGui
 
 from . import widgets
+from . import graph_widgets
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -29,7 +30,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.sourcesBox = widgets.DataSourcesGroupBox('Data sources', self)
 
         # Create canvases widget
-        self.canvasWidget = widgets.CanvasesWidget(self)
+        # self.canvasWidget = widgets.CanvasesWidget(self)
+        self.canvasWidget = graph_widgets.GraphicsLayoutWidget(self)
 
         # Create layout
         sideLayout = QtWidgets.QVBoxLayout()
