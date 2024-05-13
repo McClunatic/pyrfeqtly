@@ -15,7 +15,7 @@ from PySide6 import QtCore
 warnings.filterwarnings(
     'ignore', category=RuntimeWarning, module=r'.*ImageItem', lineno=501)
 warnings.filterwarnings(
-    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=103)
+    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=104)
 
 
 class NumpyContainer:
@@ -65,7 +65,8 @@ class NumpyContainer:
             mtime = np.round(entry.stat().st_mtime, decimals=self.decimals)
 
             # Get times index
-            atix = np.where(np.isclose(self.mtimes, mtime, atol=self.atol))[0]
+            atix = np.where(
+                np.isclose(self.mtimes, mtime, atol=self.atol, rtol=0.))[0]
             if atix.size > 1:
                 raise ValueError('Tolerance not right for dataset')
             tix = atix.item() if atix.size == 1 else self.mtimes.size - 1
