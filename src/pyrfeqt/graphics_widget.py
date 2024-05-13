@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 """Defines the graph layout widget."""
 
-import datetime
 import pathlib
 import warnings
 from functools import partial
@@ -15,95 +14,93 @@ from PySide6 import QtCore
 
 warnings.filterwarnings(
     'ignore', category=RuntimeWarning, module=r'.*ImageItem', lineno=501)
+warnings.filterwarnings(
+    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=103)
 
-NAN_LATEST = np.empty((300, 720))
-NAN_LATEST[:] = np.nan
 
+class NumpyContainer:
 
-class DataSource:
-    def __init__(self, name: str):
-        """Constructor."""
-        self.name = name
-        self.data = {}
-        self.latest_mtime = datetime.datetime.fromtimestamp(0.)
-        self.update()
+    DEFAULT_DATA = np.empty((1, 1000, 720))
+    DEFAULT_DATA[:] = np.nan
 
-    def update(self):
-        mtime = max_mtime = cutoff = self.latest_mtime
-        for path in pathlib.Path(self.name).glob('*.npy'):
-            mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime)
-            if mtime <= cutoff:
+    def __init__(self, atol: float = 1e-2):
+        self.atol = atol
+        self.decimals = int(1 - np.log10(atol))
+
+        #: List[str]
+        self.paths = []
+
+        #: np.ndarray of float64 of rounded mtimes
+        self.mtimes = np.zeros((1000,))
+
+        #: np.ndarray of float64
+        self.data = np.empty((0, 1000, 720))
+        self.data[:] = np.nan
+
+    def remove(self, path: str):
+        if path not in self.paths:
+            return
+
+        pix = self.paths.index(path)
+        self.paths.pop(pix)
+        self.data = np.delete(self.data, pix, axis=0)
+        # if self.data.shape[0] > 1:
+        #     self.data = np.delete(self.data, pix, axis=0)
+        # # Special case: no data sources, nan data and 0 mtimes
+        # else:
+        #     self.mtimes[:] = 0.
+        #     self.data[:] = np.nan
+
+    def update(self, path: str):
+        # Get path index
+        pix = self.paths.index(path) if path in self.paths else len(self.paths)
+
+        # Add path to paths list if not in it
+        if pix == len(self.paths):
+            self.paths.append(path)
+            self.data = np.concatenate([self.data, self.DEFAULT_DATA], axis=0)
+
+        # Loop over data and add new entries
+        for entry in pathlib.Path(path).glob('*.npy'):
+            mtime = np.round(entry.stat().st_mtime, decimals=self.decimals)
+
+            # Get times index
+            atix = np.where(np.isclose(self.mtimes, mtime, atol=self.atol))[0]
+            if atix.size > 1:
+                raise ValueError('Tolerance not right for dataset')
+            tix = atix.item() if atix.size == 1 else self.mtimes.size - 1
+
+            # Case 1: data is already written for (pix, tix, :); continue
+            if atix.size == 1 and not np.all(np.isnan(self.data[pix, tix])):
                 continue
-            max_mtime = max(max_mtime, mtime)
+            # Case special: data is not accessible; continue
             try:
-                with open(path, 'rb') as npy_file:
-                    self.data[mtime] = np.load(npy_file)
+                with open(entry, 'rb') as npy_file:
+                    new_data = np.load(npy_file)
             except EOFError:
                 continue
-        self.latest_mtime = mtime
 
-    def latest(self):
-        if not self.data:
-            return NAN_LATEST[-1]
-        return self.data[max(self.data.keys())]
+            # Case 2a: need a new mtime and to roll mtimes & data, then insert
+            # Case 2b: just need to insert
+            if atix.size == 0:
+                if np.any(mtime < self.mtimes):
+                    raise ValueError('Unsorted mtime encountered')
 
-    def latestWindow(self, window: int = 300):
-        if not self.data:
-            return NAN_LATEST
-        keys = sorted(self.data.keys())[-window:]
-        rows = [self.data[key] for key in keys]
-        if len(rows) < window:
-            filler = np.empty((window - len(rows), 720))
-            filler[:] = np.nan
-            rows.insert(0, filler)
-        return np.vstack(rows)
+                self.mtimes = np.roll(self.mtimes, -1)
+                self.mtimes[-1] = mtime
+                self.data = np.roll(self.data, -1, axis=1)
 
+            self.data[pix, tix, :] = new_data
 
-class DataContainer:
-    def __init__(self):
-        """Constructor."""
-        self.sources = []
-
-    def latest(self, mode: str):
-        data = [source.latest() for source in self.sources]
-        if len(data) == 0:
+    def latest(self, mode: str, window: int):
+        window_data = self.data[:, -window:, :]
+        if np.all(np.isnan(window_data)):
             return None
-        if len(data) == 1:
-            return data[0]
 
-        if mode == 'sum':
-            return np.sum(data, axis=0)
-        elif mode == 'mean':
-            return np.sum(data, axis=0)
-        else:
-            return np.max(data, axis=0)
-
-    def latestWindow(self, mode: str, window: int = 300):
-        data = [source.latestWindow(window) for source in self.sources]
-        if len(data) == 0:
-            return None
-        if len(data) == 1:
-            return data[0]
-
-        if mode == 'sum':
-            return np.sum(data, axis=0)
-        elif mode == 'mean':
-            return np.sum(data, axis=0)
-        else:
-            return np.max(data, axis=0)
-
-    def addSource(self, source: DataSource):
-        self.sources.append(source)
-
-    def removeSource(self, name: str):
-        matches = [src for src in self.sources if src.name == name]
-        if matches:
-            self.sources.remove(matches[0])
-
-    def updateSource(self, name: str):
-        matches = [src for src in self.sources if src.name == name]
-        if matches:
-            matches[0].update()
+        if mode not in ('mean', 'sum', 'max'):
+            raise ValueError(f'Unexpected aggregate mode: {mode}')
+        aggregator = getattr(np, f'nan{mode}')
+        return aggregator(window_data, axis=0)
 
 
 class GraphicsWidget(pg.GraphicsLayoutWidget):
@@ -113,11 +110,11 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def __init__(self, parent=None, title=None):
         super().__init__(parent=parent, title=title)
 
-        self.data = DataContainer()
+        self.data = NumpyContainer()
 
         self.signal_plots = [self.addPlot() for _ in range(3)]
         t = np.arange(720.)
-        y = NAN_LATEST[-1]
+        y = self.data.DEFAULT_DATA[0, -1, :]
         for idx, plot in enumerate(self.signal_plots):
             plot.getViewBox().setDefaultPadding(0.)
             plot.setXRange(t.min(), t.max() + 1.)
@@ -135,7 +132,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             plot.getViewBox().setDefaultPadding(0.)
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='spectr', idx=idx))
-            m = NAN_LATEST
+            m = self.data.DEFAULT_DATA[0, -300:, :]
             image = pg.ImageItem(m, colorMap='viridis', axisOrder='row-major')
             plot.addItem(image)
             self.spectr_images.append(image)
@@ -173,25 +170,24 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     @QtCore.Slot(str, QtCore.Qt.CheckState)
     def updateWatcher(self, watchDir, checkState):
         if checkState == QtCore.Qt.CheckState.Checked:
-            dataSource = DataSource(name=watchDir)
-            self.data.addSource(dataSource)
+            self.data.update(path=watchDir)
             self.watcher.addPath(watchDir)
         else:
-            self.data.removeSource(name=watchDir)
+            self.data.remove(path=watchDir)
             self.watcher.removePath(watchDir)
         self.updateGraphs()
 
     @QtCore.Slot(str)
     def updateData(self, watchDir):
-        self.data.updateSource(watchDir)
+        self.data.update(path=watchDir)
         self.updateGraphs()
 
     def updateGraphs(self):
-        curveData = self.data.latest('')
+        curveData = self.data.latest(mode='mean', window=1)
         if curveData is not None:
             for curve in self.signal_curves:
-                curve.setData(curveData)
-        imageData = self.data.latestWindow('')
+                curve.setData(curveData.flatten())
+        imageData = self.data.latest(mode='mean', window=300)
         if imageData is not None:
             for image in self.spectr_images:
                 image.setImage(imageData)

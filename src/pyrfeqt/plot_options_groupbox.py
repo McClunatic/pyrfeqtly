@@ -91,7 +91,7 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.axisRanges.valueChanged.connect(self.rangeChanged)
 
         self.aggregationMode = MultiModeBox(
-            ['none (multi-line)', 'sum', 'average'], self)
+            ['mean', 'sum', 'max'], self)
 
         layout.addRow('Axis ranges', self.axisRanges)
         layout.addRow('Aggregation mode', self.aggregationMode)
