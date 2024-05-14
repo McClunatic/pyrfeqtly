@@ -15,7 +15,7 @@ from PySide6 import QtCore
 warnings.filterwarnings(
     'ignore', category=RuntimeWarning, module=r'.*ImageItem', lineno=501)
 warnings.filterwarnings(
-    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=104)
+    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=107)
 
 
 class NumpyContainer:
