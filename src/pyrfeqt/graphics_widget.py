@@ -100,7 +100,7 @@ class NumpyContainer:
 
         if window == 1 and mode not in ('none', 'mean', 'sum', 'max'):
             raise ValueError(f'Unexpected aggregate mode: {mode}')
-        elif mode not in ('mean', 'sum', 'max'):
+        elif window > 1 and mode not in ('mean', 'sum', 'max'):
             raise ValueError(f'Unexpected aggregate mode: {mode}')
         try:
             aggregator = getattr(np, f'nan{mode}')
