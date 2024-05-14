@@ -132,7 +132,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.signal_curves = []
         for plot in self.signal_plots:
             curve = plot.plot(t, y)
-            self.signal_curves.append(curve)
+            self.signal_curves.append([curve])
 
         self.nextRow()
         self.spectr_plots = [self.addPlot() for _ in range(3)]
@@ -199,12 +199,30 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def updateSpectrMode(self, mode):
         self.spectrMode = mode
 
+    def updateCurves(self, curves, plot, curveData):
+        numSources = curveData.shape[0]
+        numCurves = len(curves)
+        # Add curve data for all sources
+        for pix in range(numSources):
+            pixData = curveData[pix]
+            if pix < numCurves:
+                curves[pix].setData(pixData.flatten())
+            else:
+                curve = pg.PlotDataItem(pixData.flatten())
+                curves.append(curve)
+                plot.addItem(curve)
+        # Remove curve from viewbox for any extra curves
+        for pix in range(numSources, numCurves):
+            curve = curves[pix]
+            plot.removeItem(curve)
+
     def updateGraphs(self):
-        curveData = self.data.latest(mode='mean', window=1)
+        curveData = self.data.latest(mode=self.signalMode, window=1)
         if curveData is not None:
-            for curve in self.signal_curves:
-                curve.setData(curveData.flatten())
-        imageData = self.data.latest(mode='mean', window=300)
+            for curves, plot in zip(self.signal_curves, self.signal_plots):
+                self.updateCurves(curves, plot, curveData)
+
+        imageData = self.data.latest(mode=self.spectrMode, window=300)
         if imageData is not None:
             for image in self.spectr_images:
                 image.setImage(imageData)
