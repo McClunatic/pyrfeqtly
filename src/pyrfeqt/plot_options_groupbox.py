@@ -57,8 +57,12 @@ class SpinBoxStack(QtWidgets.QWidget):
 
 
 class MultiModeBox(QtWidgets.QWidget):
+
+    valueChanged = QtCore.Signal(str)
+
     def __init__(
         self,
+        name: str,
         options: List[str],
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
@@ -66,16 +70,26 @@ class MultiModeBox(QtWidgets.QWidget):
         super().__init__(parent=parent)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel(self.tr(name)))
         self.radios = [QtWidgets.QRadioButton(self.tr(opt)) for opt in options]
         self.radios[0].setChecked(True)
-        for radio in self.radios:
+        for radio, opt in zip(self.radios, options):
+            radio.toggled.connect(partial(self.onToggled, option=opt))
             layout.addWidget(radio)
+        layout.addStretch()
         self.setLayout(layout)
+
+    @QtCore.Slot(bool, str)
+    def onToggled(self, checked: bool, option: str):
+        if checked:
+            self.valueChanged.emit(option)
 
 
 class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
     rangeChanged = QtCore.Signal(int, int, int)
+    signalModeChanged = QtCore.Signal(str)
+    spectrModeChanged = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -90,11 +104,20 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.axisRanges = SpinBoxStack(0, 720, parent=self)
         self.axisRanges.valueChanged.connect(self.rangeChanged)
 
-        self.aggregationMode = MultiModeBox(
-            ['mean', 'sum', 'max'], self)
+        self.signalAggregationMode = MultiModeBox(
+            'Signals', ['none', 'mean', 'sum', 'max'], self)
+        self.signalAggregationMode.valueChanged.connect(self.signalModeChanged)
+
+        self.spectrAggregationMode = MultiModeBox(
+            'Spectrograms', ['mean', 'sum', 'max'], self)
+        self.spectrAggregationMode.valueChanged.connect(self.spectrModeChanged)
+
+        hbox = QtWidgets.QHBoxLayout()
+        hbox.addWidget(self.signalAggregationMode)
+        hbox.addWidget(self.spectrAggregationMode)
 
         layout.addRow('Axis ranges', self.axisRanges)
-        layout.addRow('Aggregation mode', self.aggregationMode)
+        layout.addRow('Aggregation mode', hbox)
 
         self.setLayout(layout)
 

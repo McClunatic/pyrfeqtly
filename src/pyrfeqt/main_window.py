@@ -40,7 +40,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create layout
         sideLayout = QtWidgets.QVBoxLayout()
         sideLayout.addWidget(self.sliderBox)
-        sideLayout.addWidget(self.sourcesBox)
+        sideLayout.addWidget(self.sourcesBox, stretch=1)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(sideLayout)
@@ -49,6 +49,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.sliderBox.rangeChanged.connect(self.canvasWidget.updateRange)
         self.canvasWidget.rangeChanged.connect(self.sliderBox.updateRange)
+
+        self.sliderBox.signalModeChanged.connect(
+            self.canvasWidget.updateSignalMode)
+        self.sliderBox.spectrModeChanged.connect(
+            self.canvasWidget.updateSpectrMode)
 
         self.sourcesBox.sourceChanged.connect(self.canvasWidget.updateWatcher)
 

@@ -98,10 +98,15 @@ class NumpyContainer:
         if np.all(np.isnan(window_data)):
             return None
 
-        if mode not in ('mean', 'sum', 'max'):
+        if window == 1 and mode not in ('none', 'mean', 'sum', 'max'):
             raise ValueError(f'Unexpected aggregate mode: {mode}')
-        aggregator = getattr(np, f'nan{mode}')
-        return aggregator(window_data, axis=0)
+        elif mode not in ('mean', 'sum', 'max'):
+            raise ValueError(f'Unexpected aggregate mode: {mode}')
+        try:
+            aggregator = getattr(np, f'nan{mode}')
+            return aggregator(window_data, axis=0)
+        except AttributeError:
+            return window_data
 
 
 class GraphicsWidget(pg.GraphicsLayoutWidget):
@@ -112,6 +117,9 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         super().__init__(parent=parent, title=title)
 
         self.data = NumpyContainer()
+
+        self.signalMode = 'none'
+        self.spectrMode = 'mean'
 
         self.signal_plots = [self.addPlot() for _ in range(3)]
         t = np.arange(720.)
@@ -182,6 +190,14 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def updateData(self, watchDir):
         self.data.update(path=watchDir)
         self.updateGraphs()
+
+    @QtCore.Slot(str)
+    def updateSignalMode(self, mode):
+        self.signalMode = mode
+
+    @QtCore.Slot(str)
+    def updateSpectrMode(self, mode):
+        self.spectrMode = mode
 
     def updateGraphs(self):
         curveData = self.data.latest(mode='mean', window=1)
