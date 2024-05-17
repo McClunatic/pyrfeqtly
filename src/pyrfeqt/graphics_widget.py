@@ -11,6 +11,7 @@ from typing import Tuple
 import numpy as np
 import pyqtgraph as pg
 from PySide6 import QtCore
+from scipy.interpolate import RegularGridInterpolator
 
 warnings.filterwarnings(
     'ignore', category=RuntimeWarning, module=r'.*ImageItem', lineno=501)
@@ -123,11 +124,13 @@ class NumpyContainer:
         data = self.data[:, argsort]
         mtimes = self.mtimes[:, argsort]
 
-        mtime_target = mtimes[1, -1] - self.bin_width * window
+        mtime_target = mtimes[1, -1] - self.bin_width * (window - 1)
         window_idx = np.argmin(np.abs(mtimes[1] - mtime_target))
 
         window_data = data[:, window_idx:]
-        # window_mtimes = mtimes[1, window_idx:]
+        window_mtimes = mtimes[1, window_idx:]
+        window_points = np.arange(window_data.shape[2])
+
         if np.all(np.isnan(window_data)):
             return None
 
@@ -137,7 +140,19 @@ class NumpyContainer:
             raise ValueError(f'Unexpected aggregate mode: {mode}')
         try:
             aggregator = getattr(np, f'nan{mode}')
-            return aggregator(window_data, axis=0)
+            window_values = aggregator(window_data, axis=0)
+            interp = RegularGridInterpolator(
+                (window_mtimes, window_points), window_values)
+            window_frac = np.round(
+                (mtimes[1, -1] - mtimes[1, window_idx]) /
+                (mtimes[1, -1] - mtime_target),
+                decimals=2)
+            window_samples = np.linspace(
+                mtimes[1, window_idx],
+                mtimes[1, -1],
+                int(np.floor(window * window_frac)))
+            T, Y = np.meshgrid(window_samples, window_points, indexing='ij')
+            return interp((T, Y))
         except AttributeError:
             return window_data
 
