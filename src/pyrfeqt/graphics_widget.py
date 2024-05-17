@@ -19,23 +19,38 @@ warnings.filterwarnings(
 
 
 class NumpyContainer:
-
-    DEFAULT_DATA = np.empty((1, 1000, 720))
-    DEFAULT_DATA[:] = np.nan
-
-    def __init__(self, atol: float = 1e-2):
-        self.atol = atol
-        self.decimals = int(1 - np.log10(atol))
+    def __init__(
+        self,
+        bin_width: float = 1e-1,
+        history_size: int = 1000,
+        sample_size: int = 720,
+    ):
+        self.bin_width = bin_width
+        self.history_size = history_size
 
         #: List[str]
         self.paths = []
 
-        #: np.ndarray of float64 of rounded mtimes
-        self.mtimes = np.zeros((1000,))
+        #: np.ndarray of float64 of (rounded, actual) mtimes
+        self.mtimes = np.zeros((2, 1))
+
+        #: set of float64 of rounded mtimes
+        self.set_mtimes = set(self.mtimes[0])
 
         #: np.ndarray of float64
-        self.data = np.empty((0, 1000, 720))
+        self.data = np.empty((0, 1, sample_size))
         self.data[:] = np.nan
+
+    def remove_nan_samples(self):
+        # Find tix mask for deletion
+        delete_mask = np.all(np.isnan(self.data, axis=(0, 2)))
+
+        # Remove those mtimes from the set
+        self.set_mtimes.difference_update(self.mtimes[0, delete_mask])
+
+        # Delete the mtimes and data
+        self.mtimes = self.mtimes[: ~delete_mask]
+        self.data = self.data[:, ~delete_mask, :]
 
     def remove(self, path: str):
         if path not in self.paths:
@@ -44,12 +59,7 @@ class NumpyContainer:
         pix = self.paths.index(path)
         self.paths.pop(pix)
         self.data = np.delete(self.data, pix, axis=0)
-        # if self.data.shape[0] > 1:
-        #     self.data = np.delete(self.data, pix, axis=0)
-        # # Special case: no data sources, nan data and 0 mtimes
-        # else:
-        #     self.mtimes[:] = 0.
-        #     self.data[:] = np.nan
+        self.remove_nan_samples()
 
     def update(self, path: str):
         # Get path index
@@ -58,43 +68,59 @@ class NumpyContainer:
         # Add path to paths list if not in it
         if pix == len(self.paths):
             self.paths.append(path)
-            self.data = np.concatenate([self.data, self.DEFAULT_DATA], axis=0)
+            self.data = np.pad(
+                self.data, ((0, 1), (0, 0), (0, 0)), constant_values=np.nan)
 
         # Loop over data and add new entries
         for entry in pathlib.Path(path).glob('*.npy'):
-            mtime = np.round(entry.stat().st_mtime, decimals=self.decimals)
+            mtime = entry.stat().st_mtime
+            mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
 
-            # Get times index
-            atix = np.where(
-                np.isclose(self.mtimes, mtime, atol=self.atol, rtol=0.))[0]
-            if atix.size > 1:
-                raise ValueError('Tolerance not right for dataset')
-            tix = atix.item() if atix.size == 1 else self.mtimes.size - 1
+            #   1b: not yet written for pix
+            # Case 2: it's not in there and size < history_size
+            # Case 3: it's not in there and size == history_size
+            # Case 1: it's in there
+            if mtime_bin in self.set_mtimes:
+                tmask = mtime_bin == self.mtimes[0]
+            #   1a: already written the data for pix
+                if np.any(~np.isnan(self.data[pix, tmask])):
+                    continue
+            #   1b: it's not already written; use tmask later
 
-            # Case 1: data is already written for (pix, tix, :); continue
-            if atix.size == 1 and not np.all(np.isnan(self.data[pix, tix])):
-                continue
-            # Case special: data is not accessible; continue
+            # Case 2: data is not accessible; continue
             try:
                 with open(entry, 'rb') as npy_file:
                     new_data = np.load(npy_file)
             except EOFError:
                 continue
 
-            # Case 2a: need a new mtime and to roll mtimes & data, then insert
-            # Case 2b: just need to insert
-            if atix.size == 0:
-                if np.any(mtime < self.mtimes):
-                    raise ValueError('Unsorted mtime encountered')
-
-                self.mtimes = np.roll(self.mtimes, -1)
-                self.mtimes[-1] = mtime
+            # Case 3: it's not in there and size == history_size; roll and
+            #         overwrite data at time axis ends
+            if self.mtimes.shape[1] == self.history_size:
+                tmask = self.mtimes.shape[1] - 1
+                self.set_mtimes.remove(self.mtimes[0, 0])
+                self.mtimes = np.roll(self.mtimes, -1, axis=1)
+                self.mtimes[:] = [mtime_bin, mtime]
                 self.data = np.roll(self.data, -1, axis=1)
+            # Case 4: it's not in there and size < history_size; append
+            #         new data to end of time axes
+            else:
+                tmask = self.mtimes.shape[1]
+                self.mtimes = np.concatenate(
+                    self.mtimes,
+                    [[mtime_bin], [mtime]],
+                    axis=1)
+                self.data = np.pad(
+                    self.data,
+                    ((0, 0), (0, 1), (0, 0)),
+                    constant_values=np.nan)
 
-            self.data[pix, tix, :] = new_data
+            self.set_mtimes.add(mtime_bin)
+            self.data[pix, tmask, :] = new_data
 
     def latest(self, mode: str, window: int):
         window_data = self.data[:, -window:, :]
+        window_mtimes = self.mtimes[1, -window:]
         if np.all(np.isnan(window_data)):
             return None
 
@@ -106,7 +132,7 @@ class NumpyContainer:
             aggregator = getattr(np, f'nan{mode}')
             return aggregator(window_data, axis=0)
         except AttributeError:
-            return window_data
+            return window_data, window_mtimes
 
 
 class GraphicsWidget(pg.GraphicsLayoutWidget):
@@ -123,7 +149,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
         self.signal_plots = [self.addPlot() for _ in range(3)]
         t = np.arange(720.)
-        y = self.data.DEFAULT_DATA[0, -1, :]
+        y = t * np.nan
         for idx, plot in enumerate(self.signal_plots):
             plot.getViewBox().setDefaultPadding(0.)
             plot.setXRange(t.min(), t.max() + 1.)
@@ -137,11 +163,12 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.nextRow()
         self.spectr_plots = [self.addPlot() for _ in range(3)]
         self.spectr_images = []
+        m = np.empty((300, 720))
+        m[:] = np.nan
         for idx, plot in enumerate(self.spectr_plots):
             plot.getViewBox().setDefaultPadding(0.)
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='spectr', idx=idx))
-            m = self.data.DEFAULT_DATA[0, -300:, :]
             image = pg.ImageItem(m, colorMap='viridis', axisOrder='row-major')
             plot.addItem(image)
             self.spectr_images.append(image)
