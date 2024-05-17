@@ -107,8 +107,7 @@ class NumpyContainer:
             else:
                 tmask = self.mtimes.shape[1]
                 self.mtimes = np.concatenate(
-                    self.mtimes,
-                    [[mtime_bin], [mtime]],
+                    (self.mtimes, [[mtime_bin], [mtime]]),
                     axis=1)
                 self.data = np.pad(
                     self.data,
@@ -119,8 +118,16 @@ class NumpyContainer:
             self.data[pix, tmask, :] = new_data
 
     def latest(self, mode: str, window: int):
-        window_data = self.data[:, -window:, :]
-        window_mtimes = self.mtimes[1, -window:]
+        # Sort the array
+        argsort = np.argsort(self.mtimes[1])
+        data = self.data[:, argsort]
+        mtimes = self.mtimes[:, argsort]
+
+        mtime_target = mtimes[1, -1] - self.bin_width * window
+        window_idx = np.argmin(np.abs(mtimes[1] - mtime_target))
+
+        window_data = data[:, window_idx:]
+        # window_mtimes = mtimes[1, window_idx:]
         if np.all(np.isnan(window_data)):
             return None
 
@@ -132,7 +139,7 @@ class NumpyContainer:
             aggregator = getattr(np, f'nan{mode}')
             return aggregator(window_data, axis=0)
         except AttributeError:
-            return window_data, window_mtimes
+            return window_data
 
 
 class GraphicsWidget(pg.GraphicsLayoutWidget):
