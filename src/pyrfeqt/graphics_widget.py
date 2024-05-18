@@ -44,14 +44,15 @@ class NumpyContainer:
 
     def remove_nan_samples(self):
         # Find tix mask for deletion
-        delete_mask = np.all(np.isnan(self.data, axis=(0, 2)))
+        delete_mask = np.all(np.isnan(self.data), axis=(0, 2))
+        delete_idxs = delete_mask.nonzero()[0]
 
         # Remove those mtimes from the set
         self.set_mtimes.difference_update(self.mtimes[0, delete_mask])
 
         # Delete the mtimes and data
-        self.mtimes = self.mtimes[: ~delete_mask]
-        self.data = self.data[:, ~delete_mask, :]
+        self.mtimes = np.delete(self.mtimes, delete_idxs, axis=1)
+        self.data = np.delete(self.data, delete_idxs, axis=1)
 
     def remove(self, path: str):
         if path not in self.paths:
