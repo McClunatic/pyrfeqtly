@@ -147,6 +147,9 @@ class NumpyContainer:
         try:
             aggregator = getattr(np, f'nan{mode}')
             window_values = aggregator(window_data, axis=0)
+            if window == 1:
+                return window_values
+            # Do interpolation for time dimension when window > 1
             interp = RegularGridInterpolator(
                 (window_mtimes, window_points), window_values)
             window_frac = np.round(
