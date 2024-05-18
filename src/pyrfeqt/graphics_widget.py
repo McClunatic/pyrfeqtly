@@ -256,10 +256,12 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     @QtCore.Slot(str)
     def updateSignalMode(self, mode):
         self.signalMode = mode
+        self.updateGraphs()
 
     @QtCore.Slot(str)
     def updateSpectrMode(self, mode):
         self.spectrMode = mode
+        self.updateGraphs()
 
     def updateCurves(self, curves, plot, curveData):
         numSources = curveData.shape[0]
