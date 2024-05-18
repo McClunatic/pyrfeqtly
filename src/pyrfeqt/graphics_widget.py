@@ -22,9 +22,9 @@ warnings.filterwarnings(
 class NumpyContainer:
     def __init__(
         self,
-        bin_width: float = 1e-1,
-        history_size: int = 1000,
-        sample_size: int = 720,
+        bin_width: float,
+        history_size: int,
+        sample_size: int,
     ):
         self.bin_width = bin_width
         self.history_size = history_size
@@ -164,13 +164,20 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def __init__(self, parent=None, title=None):
         super().__init__(parent=parent, title=title)
 
-        self.data = NumpyContainer()
+        bin_width = 1e0
+        history_size = 1000
+        sample_size = 720
+        self.window = 300
+        self.data = NumpyContainer(
+            bin_width=bin_width,
+            history_size=history_size,
+            sample_size=sample_size)
 
         self.signalMode = 'none'
         self.spectrMode = 'mean'
 
         self.signal_plots = [self.addPlot() for _ in range(3)]
-        t = np.arange(720.)
+        t = np.arange(sample_size)
         y = t * np.nan
         for idx, plot in enumerate(self.signal_plots):
             plot.getViewBox().setDefaultPadding(0.)
@@ -185,7 +192,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.nextRow()
         self.spectr_plots = [self.addPlot() for _ in range(3)]
         self.spectr_images = []
-        m = np.empty((300, 720))
+        m = np.empty((self.window, sample_size))
         m[:] = np.nan
         for idx, plot in enumerate(self.spectr_plots):
             plot.getViewBox().setDefaultPadding(0.)
@@ -271,7 +278,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             for curves, plot in zip(self.signal_curves, self.signal_plots):
                 self.updateCurves(curves, plot, curveData)
 
-        imageData = self.data.latest(mode=self.spectrMode, window=300)
-        if imageData is not None:
+        imageData = self.data.latest(mode=self.spectrMode, window=self.window)
+        if imageData is not None and imageData.size > 0:
             for image in self.spectr_images:
                 image.setImage(imageData)
