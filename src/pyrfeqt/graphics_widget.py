@@ -122,6 +122,9 @@ class NumpyContainer:
             self.data[pix, tmask, :] = new_data
 
     def latest(self, mode: str, window: int):
+        if self.data.size == 0:
+            return None
+
         # Sort the array
         argsort = np.argsort(self.mtimes[1])
         data = self.data[:, argsort]
