@@ -73,7 +73,9 @@ class NumpyContainer:
                 self.data, ((0, 1), (0, 0), (0, 0)), constant_values=np.nan)
 
         # Loop over data and add new entries
-        for entry in pathlib.Path(path).glob('*.npy'):
+        entries = sorted(
+            pathlib.Path(path).glob('*.npy'), key=lambda e: e.stat().st_mtime)
+        for entry in entries[-self.history_size:]:
             mtime = entry.stat().st_mtime
             mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
 
