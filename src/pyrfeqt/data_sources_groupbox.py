@@ -80,7 +80,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             self.tr("Select data source directory"),
             str(pathlib.Path.cwd()),
             QtWidgets.QFileDialog.Option.ShowDirsOnly)
-        if not self.listModel.findItems(source):
+        if source != '' and not self.listModel.findItems(source):
             item = QtGui.QStandardItem(source)
             item.setCheckable(True)
             self.listModel.appendRow(item)
