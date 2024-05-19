@@ -11,10 +11,8 @@ from PySide6 import QtCore, QtWidgets
 class QSpinBox(QtWidgets.QSpinBox):
     def sizeHint(self):
         baseSizeHint = super().sizeHint()
-        windows11 = QtCore.QOperatingSystemVersion(
-            QtCore.QOperatingSystemVersion.Windows,
-            QtCore.QOperatingSystemVersion.Windows11)
-        if QtCore.QOperatingSystemVersion.current() >= windows11:
+        if QtCore.QOperatingSystemVersion.current() >= \
+                QtCore.QOperatingSystemVersion.Windows11:
             return super().sizeHint() + QtCore.QSize(40, 0)
         else:
             return baseSizeHint
