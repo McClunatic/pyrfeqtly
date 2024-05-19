@@ -199,7 +199,9 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         m = np.empty((self.window, sample_size))
         m[:] = np.nan
         for idx, plot in enumerate(self.spectr_plots):
-            plot.getViewBox().setDefaultPadding(0.)
+            vb = plot.getViewBox()
+            vb.invertY()
+            vb.setDefaultPadding(0.)
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='spectr', idx=idx))
             image = pg.ImageItem(m, colorMap='viridis', axisOrder='row-major')
@@ -300,4 +302,4 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         imageData = self.data.latest(mode=self.spectrMode, window=self.window)
         if imageData is not None and imageData.size > 0:
             for image in self.spectr_images:
-                image.setImage(imageData)
+                image.setImage(np.flipud(imageData))
