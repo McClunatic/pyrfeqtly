@@ -196,6 +196,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             viewBox = plot.getViewBox()
             viewBox.setDefaultPadding(0.)
             viewBox.invertY()
+            plot.setXRange(0, sample_size)
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='spectr', idx=idx))
 
