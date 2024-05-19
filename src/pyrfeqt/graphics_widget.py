@@ -76,37 +76,31 @@ class NumpyContainer:
         entries = sorted(
             pathlib.Path(path).glob('*.npy'), key=lambda e: e.stat().st_mtime)
         for entry in entries[-self.history_size:]:
-            mtime = entry.stat().st_mtime
-            mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
-
-            #   1b: not yet written for pix
-            # Case 2: it's not in there and size < history_size
-            # Case 3: it's not in there and size == history_size
-            # Case 1: it's in there
-            if mtime_bin in self.set_mtimes:
-                tmask = mtime_bin == self.mtimes[0]
-            #   1a: already written the data for pix
-                if np.any(~np.isnan(self.data[pix, tmask])):
-                    continue
-            #   1b: it's not already written; use tmask later
-
-            # Case 2: data is not accessible; continue
+            # Case 1: data is not accessible; continue
             try:
                 with open(entry, 'rb') as npy_file:
                     new_data = np.load(npy_file)
             except EOFError:
                 continue
 
-            # Case 3: it's not in there and size == history_size; roll and
-            #         overwrite data at time axis ends
-            if self.mtimes.shape[1] == self.history_size:
+            mtime = entry.stat().st_mtime
+            mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
+
+            # Case 2: mtime is in there
+            if mtime_bin in self.set_mtimes:
+                tmask = mtime_bin == self.mtimes[0]
+            #   2a: already written the data for pix
+                if np.any(~np.isnan(self.data[pix, tmask])):
+                    continue
+            #   2b: it's not already written; use tmask later
+            # Case 3: mtime is not in there and size == history_size
+            elif self.mtimes.shape[1] == self.history_size:
                 tmask = self.mtimes.shape[1] - 1
                 self.set_mtimes.remove(self.mtimes[0, 0])
                 self.mtimes = np.roll(self.mtimes, -1, axis=1)
                 self.mtimes[:] = [mtime_bin, mtime]
                 self.data = np.roll(self.data, -1, axis=1)
-            # Case 4: it's not in there and size < history_size; append
-            #         new data to end of time axes
+            # Case 4: mtime is not in there and size < history_size
             else:
                 tmask = self.mtimes.shape[1]
                 self.mtimes = np.concatenate(
