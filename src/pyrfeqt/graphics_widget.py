@@ -182,32 +182,22 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.spectrMode = 'mean'
 
         self.signal_plots = [self.addPlot() for _ in range(3)]
-        t = np.arange(sample_size)
-        y = t * np.nan
         for idx, plot in enumerate(self.signal_plots):
-            plot.getViewBox().setDefaultPadding(0.)
-            plot.setXRange(t.min(), t.max() + 1.)
+            plot.addLegend()
+            viewBox = plot.getViewBox()
+            viewBox.setDefaultPadding(0.)
+            plot.setXRange(0, sample_size)
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='signal', idx=idx))
-        self.signal_curves = []
-        for plot in self.signal_plots:
-            curve = plot.plot(t, y)
-            self.signal_curves.append([curve])
 
         self.nextRow()
         self.spectr_plots = [self.addPlot() for _ in range(3)]
-        self.spectr_images = []
-        m = np.empty((self.window, sample_size))
-        m[:] = np.nan
         for idx, plot in enumerate(self.spectr_plots):
-            vb = plot.getViewBox()
-            vb.invertY()
-            vb.setDefaultPadding(0.)
+            viewBox = plot.getViewBox()
+            viewBox.setDefaultPadding(0.)
+            viewBox.invertY()
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='spectr', idx=idx))
-            image = pg.ImageItem(m, colorMap='viridis', axisOrder='row-major')
-            plot.addItem(image)
-            self.spectr_images.append(image)
 
         self.watcher = QtCore.QFileSystemWatcher()
         self.watcher.directoryChanged.connect(self.updateData)
@@ -264,7 +254,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.spectrMode = mode
         self.updateGraphs()
 
-    def updateCurves(self, curves, plot, curveData):
+    def updateCurves(self, plot, curveData):
         tab_colors = [
             '#1f77b4',
             '#ff7f0e',
@@ -278,29 +268,38 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             '#17becf',
         ]
         numSources = curveData.shape[0]
-        numCurves = len(curves)
+        numCurves = len(plot.curves)
         # Add curve data for all sources
         for pix in range(numSources):
             pixData = curveData[pix]
             color = tab_colors[pix]
+            name = pathlib.Path(self.data.paths[pix]).name
             if pix < numCurves:
-                curves[pix].setData(pixData.flatten(), pen=color)
+                plot.curves[pix].setData(pixData.flatten(), pen=color)
             else:
-                curve = pg.PlotDataItem(pixData.flatten(), pen=color)
-                curves.append(curve)
+                curve = pg.PlotDataItem(
+                    pixData.flatten(), pen=color, name=name)
                 plot.addItem(curve)
         # Remove curve from viewbox for any extra curves
         for pix in range(numSources, numCurves):
-            curve = curves.pop(pix)
             plot.removeItem(curve)
+
+    def updateImages(self, plot, imageData):
+        if plot.items:
+            plot.items[0].setImage(np.flipud(imageData))
+        else:
+            image = pg.ImageItem(
+                np.flipud(imageData),
+                colorMap='viridis', axisOrder='row-major')
+            plot.addItem(image)
 
     def updateGraphs(self):
         curveData = self.data.latest(mode=self.signalMode, window=1)
-        if curveData is not None:
-            for curves, plot in zip(self.signal_curves, self.signal_plots):
-                self.updateCurves(curves, plot, curveData)
+        if curveData is not None and curveData.size > 0:
+            for plot in self.signal_plots:
+                self.updateCurves(plot, curveData)
 
         imageData = self.data.latest(mode=self.spectrMode, window=self.window)
         if imageData is not None and imageData.size > 0:
-            for image in self.spectr_images:
-                image.setImage(np.flipud(imageData))
+            for plot in self.spectr_plots:
+                self.updateImages(plot, imageData)
