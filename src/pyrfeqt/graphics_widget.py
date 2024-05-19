@@ -290,7 +290,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         else:
             image = pg.ImageItem(
                 np.flipud(imageData),
-                colorMap='viridis', axisOrder='row-major')
+                colorMap='plasma', axisOrder='row-major')
             plot.addItem(image)
 
     def updateGraphs(self):
