@@ -222,6 +222,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
         self.nextRow()
         self.color_bar = pg.ColorBarItem(colorMap='plasma', orientation='h')
+        self.color_bar.setVisible(False)
         self.addItem(self.color_bar, colspan=3)
 
         self.watcher = QtCore.QFileSystemWatcher()
@@ -323,14 +324,16 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def updateImages(self, plot, imageData):
         if imageData.size == 0:
             plot.removeItem(plot.items[0])
+            self.color_bar.setVisible(False)
         elif plot.items:
             plot.items[0].setImage(np.flipud(imageData))
             self.color_bar.setImageItem(plot.items[0])
+            self.color_bar.setVisible(True)
         else:
             image = pg.ImageItem(np.flipud(imageData), axisOrder='row-major')
             plot.addItem(image)
             self.color_bar.setImageItem(image)
-            # plot.addColorBar(image, colorMap='plasma', orientation='h')
+            self.color_bar.setVisible(True)
 
     def updateGraphs(self):
         curveData = self.data.latest(mode=self.signalMode, window=1)
