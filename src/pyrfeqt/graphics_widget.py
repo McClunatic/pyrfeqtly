@@ -153,6 +153,7 @@ class NumpyContainer:
             (mtimes[1, -1] - mtimes[1, window_idx]) /
             (mtimes[1, -1] - mtime_target),
             decimals=2)
+        window_frac = min(1., window_frac)
         window_samples = np.linspace(
             mtimes[1, window_idx],
             mtimes[1, -1],
