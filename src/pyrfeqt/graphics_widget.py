@@ -33,14 +33,13 @@ class NumpyContainer:
         self.paths = []
 
         #: np.ndarray of float64 of (rounded, actual) mtimes
-        self.mtimes = np.zeros((2, 1))
+        self.mtimes = np.empty((2, 0), dtype=float)
 
         #: set of float64 of rounded mtimes
-        self.set_mtimes = set(self.mtimes[0])
+        self.set_mtimes = set()
 
         #: np.ndarray of float64
-        self.data = np.empty((0, 1, sample_size))
-        self.data[:] = np.nan
+        self.data = np.empty((0, 0, sample_size), dtype=float)
 
     def remove_nan_samples(self):
         # Find tix mask for deletion
