@@ -144,26 +144,28 @@ class NumpyContainer:
             raise ValueError(f'Unexpected aggregate mode: {mode}')
         elif window > 1 and mode not in ('mean', 'sum', 'max'):
             raise ValueError(f'Unexpected aggregate mode: {mode}')
-        try:
-            aggregator = getattr(np, f'nan{mode}')
-            window_values = aggregator(window_data, axis=0)
-            if window == 1:
-                return window_values
-            # Do interpolation for time dimension when window > 1
-            interp = RegularGridInterpolator(
-                (window_mtimes, window_points), window_values)
-            window_frac = np.round(
-                (mtimes[1, -1] - mtimes[1, window_idx]) /
-                (mtimes[1, -1] - mtime_target),
-                decimals=2)
-            window_samples = np.linspace(
-                mtimes[1, window_idx],
-                mtimes[1, -1],
-                int(np.floor(window * window_frac)))
-            T, Y = np.meshgrid(window_samples, window_points, indexing='ij')
-            return interp((T, Y))
-        except AttributeError:
-            return window_data
+
+        def noop(arr, axis=None):
+            return arr
+
+        aggregator = getattr(np, f'nan{mode}', noop)
+        window_values = aggregator(window_data, axis=0)
+        # Return data as is when time dimension is removed
+        if window == 1:
+            return window_values
+        # Interpolate data when time dimension is not (window > 1)
+        interp = RegularGridInterpolator(
+            (window_mtimes, window_points), window_values)
+        window_frac = np.round(
+            (mtimes[1, -1] - mtimes[1, window_idx]) /
+            (mtimes[1, -1] - mtime_target),
+            decimals=2)
+        window_samples = np.linspace(
+            mtimes[1, window_idx],
+            mtimes[1, -1],
+            int(np.floor(window * window_frac)))
+        T, Y = np.meshgrid(window_samples, window_points, indexing='ij')
+        return interp((T, Y))
 
 
 class GraphicsWidget(pg.GraphicsLayoutWidget):
