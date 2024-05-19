@@ -283,7 +283,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
                 plot.addItem(curve)
         # Remove curve from viewbox for any extra curves
         for pix in range(numSources, numCurves):
-            plot.removeItem(curve)
+            plot.removeItem(plot.curves[pix])
 
     def updateImages(self, plot, imageData):
         if plot.items:
