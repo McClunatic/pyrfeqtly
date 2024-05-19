@@ -183,7 +183,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
         self.signal_plots = [self.addPlot() for _ in range(3)]
         for idx, plot in enumerate(self.signal_plots):
-            plot.addLegend()
+            plot.addLegend(offset=(-1, -1))
             viewBox = plot.getViewBox()
             viewBox.setDefaultPadding(0.)
             plot.setXRange(0, sample_size)
