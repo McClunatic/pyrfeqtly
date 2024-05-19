@@ -289,10 +289,9 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         if plot.items:
             plot.items[0].setImage(np.flipud(imageData))
         else:
-            image = pg.ImageItem(
-                np.flipud(imageData),
-                colorMap='plasma', axisOrder='row-major')
+            image = pg.ImageItem(np.flipud(imageData), axisOrder='row-major')
             plot.addItem(image)
+            plot.addColorBar(image, colorMap='plasma', orientation='h')
 
     def updateGraphs(self):
         curveData = self.data.latest(mode=self.signalMode, window=1)
