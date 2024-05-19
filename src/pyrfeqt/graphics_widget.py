@@ -257,23 +257,23 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
     def updateCurves(self, plot, curveData):
         tab_colors = [
-            '#1f77b4',
-            '#ff7f0e',
-            '#2ca02c',
-            '#d62728',
-            '#9467bd',
-            '#8c564b',
-            '#e377c2',
-            '#7f7f7f',
-            '#bcbd22',
-            '#17becf',
+            '#1f77b4',  # blue
+            '#ff7f0e',  # orange
+            '#2ca02c',  # green
+            '#d62728',  # red
+            '#9467bd',  # purple
+            '#8c564b',  # brown
+            '#e377c2',  # pink
+            '#7f7f7f',  # gray
+            '#bcbd22',  # olive
+            '#17becf',  # cyan
         ]
         numSources = curveData.shape[0]
         numCurves = len(plot.curves)
         # Add curve data for all sources
         for pix in range(numSources):
             pixData = curveData[pix]
-            color = tab_colors[pix]
+            color = tab_colors[pix % len(tab_colors)]
             name = pathlib.Path(self.data.paths[pix]).name
             if pix < numCurves:
                 plot.curves[pix].setData(pixData.flatten(), pen=color)
