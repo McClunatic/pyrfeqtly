@@ -132,11 +132,11 @@ class NumpyContainer:
 
     def latest(self, mode: str, window: int):
         if self.data.size == 0:
-            return None
+            return np.empty((0, 0))
 
         display_data = self.data[self.displayed]
         if display_data.size == 0:
-            return None
+            return np.empty((0, 0))
 
         # Sort the array
         argsort = np.argsort(self.mtimes[1])
@@ -219,6 +219,10 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             plot.setXRange(0, sample_size)
             plot.sigXRangeChanged.connect(
                 partial(self.onXRangeChanged, mode='spectr', idx=idx))
+
+        self.nextRow()
+        self.color_bar = pg.ColorBarItem(colorMap='plasma', orientation='h')
+        self.addItem(self.color_bar, colspan=3)
 
         self.watcher = QtCore.QFileSystemWatcher()
         self.watcher.directoryChanged.connect(self.updateData)
@@ -317,20 +321,22 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             plot.removeItem(plot.curves[pix])
 
     def updateImages(self, plot, imageData):
-        if plot.items:
+        if imageData.size == 0:
+            plot.removeItem(plot.items[0])
+        elif plot.items:
             plot.items[0].setImage(np.flipud(imageData))
+            self.color_bar.setImageItem(plot.items[0])
         else:
             image = pg.ImageItem(np.flipud(imageData), axisOrder='row-major')
             plot.addItem(image)
-            plot.addColorBar(image, colorMap='plasma', orientation='h')
+            self.color_bar.setImageItem(image)
+            # plot.addColorBar(image, colorMap='plasma', orientation='h')
 
     def updateGraphs(self):
         curveData = self.data.latest(mode=self.signalMode, window=1)
-        if curveData is not None and curveData.size > 0:
-            for plot in self.signal_plots:
-                self.updateCurves(plot, curveData)
+        for plot in self.signal_plots:
+            self.updateCurves(plot, curveData)
 
         imageData = self.data.latest(mode=self.spectrMode, window=self.window)
-        if imageData is not None and imageData.size > 0:
-            for plot in self.spectr_plots:
-                self.updateImages(plot, imageData)
+        for plot in self.spectr_plots:
+            self.updateImages(plot, imageData)
