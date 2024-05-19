@@ -11,7 +11,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
-    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
+    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState, bool)
 
     def __init__(
         self,
@@ -23,6 +23,8 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
         self.listModel = QtGui.QStandardItemModel()
         self.listModel.itemChanged.connect(self.onItemChanged)
+        self.listModel.rowsAboutToBeRemoved.connect(
+            self.onRowsAboutToBeRemoved)
         self.treeModel = QtWidgets.QFileSystemModel()
 
         self.listView = QtWidgets.QListView()
@@ -98,4 +100,12 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(QtGui.QStandardItem)
     def onItemChanged(self, item):
-        self.sourceChanged.emit(item.text(), item.checkState())
+        # text, checkState, removed=False
+        self.sourceChanged.emit(item.text(), item.checkState(), False)
+
+    @QtCore.Slot(QtCore.QModelIndex, int, int)
+    def onRowsAboutToBeRemoved(self, index, first, last):
+        items = [self.listModel.item(row, 0) for row in range(first, last + 1)]
+        for item in items:
+            # text, checkState, removed=False
+            self.sourceChanged.emit(item.text(), item.checkState(), True)

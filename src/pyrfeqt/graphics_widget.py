@@ -16,7 +16,7 @@ from scipy.interpolate import RegularGridInterpolator
 warnings.filterwarnings(
     'ignore', category=RuntimeWarning, module=r'.*ImageItem', lineno=501)
 warnings.filterwarnings(
-    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=107)
+    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=161)
 
 
 class NumpyContainer:
@@ -31,6 +31,9 @@ class NumpyContainer:
 
         #: List[str]
         self.paths = []
+
+        #: List[bool]
+        self.displayed = []
 
         #: np.ndarray of float64 of (rounded, actual) mtimes
         self.mtimes = np.empty((2, 0), dtype=float)
@@ -53,22 +56,31 @@ class NumpyContainer:
         self.mtimes = np.delete(self.mtimes, delete_idxs, axis=1)
         self.data = np.delete(self.data, delete_idxs, axis=1)
 
+    def display(self, path: str, displayed: bool):
+        if path not in self.paths:
+            return
+
+        pix = self.paths.index(path)
+        self.displayed[pix] = displayed
+
     def remove(self, path: str):
         if path not in self.paths:
             return
 
         pix = self.paths.index(path)
         self.paths.pop(pix)
+        self.displayed.pop(pix)
         self.data = np.delete(self.data, pix, axis=0)
         self.remove_nan_samples()
 
-    def update(self, path: str):
+    def update(self, path: str, displayed: bool = True):
         # Get path index
         pix = self.paths.index(path) if path in self.paths else len(self.paths)
 
         # Add path to paths list if not in it
         if pix == len(self.paths):
             self.paths.append(path)
+            self.displayed.append(displayed)
             self.data = np.pad(
                 self.data, ((0, 1), (0, 0), (0, 0)), constant_values=np.nan)
 
@@ -118,9 +130,13 @@ class NumpyContainer:
         if self.data.size == 0:
             return None
 
+        display_data = self.data[self.displayed]
+        if display_data.size == 0:
+            return None
+
         # Sort the array
         argsort = np.argsort(self.mtimes[1])
-        data = self.data[:, argsort]
+        data = display_data[:, argsort]
         mtimes = self.mtimes[:, argsort]
 
         mtime_target = mtimes[1, -1] - self.bin_width * (window - 1)
@@ -231,13 +247,20 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.rangeChanged.emit(idx, int(xRange[0]), int(xRange[1]))
 
     @QtCore.Slot(str, QtCore.Qt.CheckState)
-    def updateWatcher(self, watchDir, checkState):
-        if checkState == QtCore.Qt.CheckState.Checked:
-            self.data.update(path=watchDir)
-            self.watcher.addPath(watchDir)
-        else:
+    def updateWatcher(self, watchDir, checkState, remove):
+        watched = watchDir in self.watcher.directories()
+        displayed = checkState == QtCore.Qt.CheckState.Checked
+        # Remove: stop keeping data and stop watching
+        if remove:
             self.data.remove(path=watchDir)
             self.watcher.removePath(watchDir)
+        # Don't remove and unwatched: start watching and set display
+        elif not watched:
+            self.data.update(path=watchDir, displayed=displayed)
+            self.watcher.addPath(watchDir)
+        # Don't remove and watched: just set display
+        else:
+            self.data.display(path=watchDir, displayed=displayed)
         self.updateGraphs()
 
     @QtCore.Slot(str)
