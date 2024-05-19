@@ -262,20 +262,33 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.updateGraphs()
 
     def updateCurves(self, curves, plot, curveData):
+        tab_colors = [
+            '#1f77b4',
+            '#ff7f0e',
+            '#2ca02c',
+            '#d62728',
+            '#9467bd',
+            '#8c564b',
+            '#e377c2',
+            '#7f7f7f',
+            '#bcbd22',
+            '#17becf',
+        ]
         numSources = curveData.shape[0]
         numCurves = len(curves)
         # Add curve data for all sources
         for pix in range(numSources):
             pixData = curveData[pix]
+            color = tab_colors[pix]
             if pix < numCurves:
-                curves[pix].setData(pixData.flatten())
+                curves[pix].setData(pixData.flatten(), pen=color)
             else:
-                curve = pg.PlotDataItem(pixData.flatten())
+                curve = pg.PlotDataItem(pixData.flatten(), pen=color)
                 curves.append(curve)
                 plot.addItem(curve)
         # Remove curve from viewbox for any extra curves
         for pix in range(numSources, numCurves):
-            curve = curves[pix]
+            curve = curves.pop(pix)
             plot.removeItem(curve)
 
     def updateGraphs(self):
