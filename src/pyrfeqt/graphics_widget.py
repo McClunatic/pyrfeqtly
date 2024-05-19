@@ -16,7 +16,7 @@ from scipy.interpolate import RegularGridInterpolator
 warnings.filterwarnings(
     'ignore', category=RuntimeWarning, module=r'.*ImageItem', lineno=501)
 warnings.filterwarnings(
-    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=161)
+    'ignore', category=RuntimeWarning, module=r'.*graphics_widget', lineno=165)
 
 
 class NumpyContainer:
@@ -43,6 +43,10 @@ class NumpyContainer:
 
         #: np.ndarray of float64
         self.data = np.empty((0, 0, sample_size), dtype=float)
+
+    @property
+    def displayed_paths(self):
+        return [pth for (pth, dis) in zip(self.paths, self.displayed) if dis]
 
     def remove_nan_samples(self):
         # Find tix mask for deletion
@@ -297,9 +301,13 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         for pix in range(numSources):
             pixData = curveData[pix]
             color = tab_colors[pix % len(tab_colors)]
-            name = pathlib.Path(self.data.paths[pix]).name
+            name = pathlib.Path(self.data.displayed_paths[pix]).name
             if pix < numCurves:
-                plot.curves[pix].setData(pixData.flatten(), pen=color)
+                curve = plot.curves[pix]
+                curve.setData(pixData.flatten(), pen=color)
+                # Update legend for item
+                plot.legend.removeItem(curve)
+                plot.legend.addItem(curve, name=name)
             else:
                 curve = pg.PlotDataItem(
                     pixData.flatten(), pen=color, name=name)
