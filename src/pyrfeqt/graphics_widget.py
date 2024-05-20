@@ -114,7 +114,7 @@ class NumpyContainer:
                 tmask = self.mtimes.shape[1] - 1
                 self.set_mtimes.remove(self.mtimes[0, 0])
                 self.mtimes = np.roll(self.mtimes, -1, axis=1)
-                self.mtimes[:] = [mtime_bin, mtime]
+                self.mtimes[:, -1] = [mtime_bin, mtime]
                 self.data = np.roll(self.data, -1, axis=1)
             # Case 4: mtime is not in there and size < history_size
             else:
