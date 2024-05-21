@@ -9,6 +9,7 @@ from .data_container import DataContainer
 from .data_sources_groupbox import DataSourcesGroupBox
 from .plot_options_groupbox import PlotOptionsGroupBox
 from .graphics_widget import GraphicsWidget
+from . import BIN_WIDTH, HISTORY_SIZE, SAMPLE_SIZE, WINDOW_SIZE
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -19,13 +20,15 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.setCentralWidget(QtWidgets.QWidget())
+        self.writeDefaultSettings()
 
         # Create the data container object
-        # TODO: make sure these get set on app init somehow
+        settings = QtCore.QSettings()
         self.data = DataContainer(
-            bin_width=1e0,
-            history_size=100,
-            sample_size=720)
+            bin_width=settings.value('default/data/bin_width'),
+            sample_size=settings.value('default/data/sample_size'),
+            history_size=settings.value('default/data/history_size'),
+            window_size=settings.value('default/data/window_size'))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
@@ -44,6 +47,63 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._buildLayout()
         self._connectSignalsAndSlots()
+
+    def writeDefaultSettings(self):
+        settings = QtCore.QSettings()
+        groups = settings.childGroups()
+        if 'default' in groups:
+            return
+
+        settings.beginGroup('default')
+        settings.beginGroup('plotOptions')
+        settings.setValue('xRange', [0, SAMPLE_SIZE])
+        settings.setValue('aggregationModes', ['none', 'mean'])
+        settings.beginWriteArray('sourceSelection')
+        settings.endArray()
+        settings.endGroup()
+        settings.beginGroup('dataSources')
+        settings.setValue('paths', [])
+        settings.endGroup()
+        settings.beginGroup('data')
+        settings.setValue('bin_width', BIN_WIDTH)
+        settings.setValue('sample_size', SAMPLE_SIZE)
+        settings.setValue('history_size', HISTORY_SIZE)
+        settings.setValue('window_size', WINDOW_SIZE)
+        settings.endGroup()
+        settings.endGroup()
+
+    def readSettings(self, group: str = 'default'):
+        settings = QtCore.QSettings()
+        settings.beginGroup(group)
+        result = {
+            'plotOptions': {},
+            'dataSources': {},
+            'data': {},
+        }
+        settings.beginGroup('plotOptions')
+        result['plotOptions']['xRange'] = settings.value('xRange', type=list)
+        result['plotOptions']['aggregationModes'] = settings.value(
+            'aggregationModes', type=list)
+        size = settings.beginReadArray('sourceSelection')
+        sourceSelection = []
+        for idx in range(size):
+            settings.setArrayIndex(idx)
+            sourceSelection.append(
+                (settings.value('path'), settings.value('checked')))
+        settings.endArray()
+        result['plotOptions']['sourceSelection'] = sourceSelection
+        settings.endGroup()
+        settings.beginGroup('dataSources')
+        result['dataSources']['paths'] = settings.value('paths', type=list)
+        settings.endGroup()
+        settings.beginGroup('data')
+        result['data']['bin_width'] = settings.value('bin_width')
+        result['data']['sample_size'] = settings.value('sample_size')
+        result['data']['history_size'] = settings.value('history_size')
+        result['data']['window_size'] = settings.value('window_size')
+        settings.endGroup()
+        settings.endGroup()
+        return result
 
     @QtCore.Slot(str)
     def updateData(self, watchDir: str):
