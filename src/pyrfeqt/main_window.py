@@ -14,10 +14,10 @@ from .graphics_widget import GraphicsWidget
 BIN_WIDTH = 1e0
 
 #: int: default number of samples to retain in memory as history
-HISTORY_SIZE = 1000
+HISTORY_SIZE = 31
 
 #: int: default number of samples to display in spectrogram plots
-WINDOW_SIZE = 300
+WINDOW_SIZE = 30
 
 #: int: default array size of a single source data sample
 SAMPLE_SIZE = 720
