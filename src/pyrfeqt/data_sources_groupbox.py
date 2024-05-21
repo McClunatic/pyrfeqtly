@@ -103,7 +103,6 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(QtCore.QModelIndex, int, int)
     def onRowsInserted(self, index, first, last):
-        print('onRowsInserted')
         items = [self.listModel.item(row, 0) for row in range(first, last + 1)]
         for item in items:
             self.sourceInserted.emit(item.text())
