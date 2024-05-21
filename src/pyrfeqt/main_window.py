@@ -9,7 +9,22 @@ from .data_container import DataContainer
 from .data_sources_groupbox import DataSourcesGroupBox
 from .plot_options_groupbox import PlotOptionsGroupBox
 from .graphics_widget import GraphicsWidget
-from . import BIN_WIDTH, HISTORY_SIZE, SAMPLE_SIZE, WINDOW_SIZE
+
+# float: default bin width used to bin samples together in time
+BIN_WIDTH = 1e0
+
+#: int: default number of samples to retain in memory as history
+HISTORY_SIZE = 1000
+
+#: int: default number of samples to display in spectrogram plots
+WINDOW_SIZE = 300
+
+#: int: default array size of a single source data sample
+SAMPLE_SIZE = 720
+
+QtWidgets.QApplication.setApplicationName('pyrfeqt')
+QtWidgets.QApplication.setOrganizationName('Brian')
+QtCore.QSettings.setDefaultFormat(QtCore.QSettings.Format.IniFormat)
 
 
 class MainWindow(QtWidgets.QMainWindow):
