@@ -149,7 +149,7 @@ class DataContainer(QtCore.QObject):
         window_points = np.arange(window_data.shape[2])
 
         if np.all(np.isnan(window_data)):
-            return None
+            return np.empty((0, 0))
 
         if window == 1 and mode not in ('none', 'mean', 'sum', 'max'):
             raise ValueError(f'Unexpected aggregate mode: {mode}')
