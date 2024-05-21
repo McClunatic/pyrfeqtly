@@ -216,6 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _connectSignalsAndSlots(self):
         self.dataUpdated.connect(self.data.updated)
+        self.dataSourcesBox.sourceInserted.connect(self.updateData)
         self.dataSourcesBox.sourceDataChanged.connect(self.updateData)
         for idx in range(3):
             opts = self.plotOptionsBox.widget(idx)
