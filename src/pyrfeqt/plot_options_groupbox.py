@@ -70,7 +70,7 @@ class SpinBoxPair(QtWidgets.QWidget):
 
 class ComboBoxPair(QtWidgets.QWidget):
 
-    valueChanged = QtCore.Signal(int, int)
+    valueChanged = QtCore.Signal(str, str)
 
     def __init__(
         self,
@@ -114,8 +114,6 @@ class SelectedSourcesGroupBox(QtWidgets.QWidget):
 
         self.listModel = QtGui.QStandardItemModel()
         self.listModel.itemChanged.connect(self.onItemChanged)
-        self.listModel.rowsAboutToBeRemoved.connect(
-            self.onRowsAboutToBeRemoved)
 
         self.listView = QtWidgets.QListView()
         self.listView.setSizeAdjustPolicy(
@@ -129,7 +127,7 @@ class SelectedSourcesGroupBox(QtWidgets.QWidget):
         self.setLayout(layout)
 
     @QtCore.Slot(str)
-    def addSource(self, source: str):
+    def insertSource(self, source: str):
         item = QtGui.QStandardItem(source)
         item.setCheckable(True)
         self.listModel.appendRow(item)
@@ -153,12 +151,12 @@ class SelectedSourcesGroupBox(QtWidgets.QWidget):
 class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
     xRangeChanged = QtCore.Signal(int, int)
-    modesChanged = QtCore.Signal(str, str)
-    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
+    aggregationModesChanged = QtCore.Signal(str, str)
+    sourceSelectionChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
 
-    xRangeUpdated = QtCore.Signal(int, int)
-    sourceInserted = QtCore.Signal(str)
-    sourceRemoved = QtCore.Signal(str)
+    updateXRange = QtCore.Signal(int, int)
+    insertSource = QtCore.Signal(str)
+    removeSource = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -172,18 +170,19 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
         self.xAxisRange = SpinBoxPair(0, 720, parent=self)
         self.xAxisRange.valueChanged.connect(self.xRangeChanged)
-        self.xRangeUpdated.connect(self.xAxisRange.updateRange)
+        self.updateXRange.connect(self.xAxisRange.updateRange)
 
         self.aggregationModes = ComboBoxPair(
             signalOptions=['none', 'mean', 'sum', 'max'],
             spectrOptions=['none', 'mean', 'sum', 'max'],
             parent=self)
-        self.aggregationModes.valueChanged.connect(self.modesChanged)
+        self.aggregationModes.valueChanged.connect(
+            self.aggregationModesChanged)
 
         self.dataSources = SelectedSourcesGroupBox(parent=self)
-        self.dataSources.sourceChanged.connect(self.sourceChanged)
-        self.sourceInserted.connect(self.dataSources.addSource)
-        self.sourceRemoved.connect(self.dataSources.removeSource)
+        self.dataSources.sourceChanged.connect(self.sourceSelectionChanged)
+        self.insertSource.connect(self.dataSources.insertSource)
+        self.removeSource.connect(self.dataSources.removeSource)
 
         layout.addRow('x-axis range', self.xAxisRange)
         layout.addRow('aggregation modes', self.aggregationModes)

@@ -13,6 +13,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
     sourceInserted = QtCore.Signal(str)
     sourceRemoved = QtCore.Signal(str)
+    sourceDataChanged = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -23,7 +24,6 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         super(DataSourcesGroupBox, self).__init__(title=title, parent=parent)
 
         self.listModel = QtGui.QStandardItemModel()
-        self.listModel.itemChanged.connect(self.onItemChanged)
         self.listModel.rowsAboutToBeRemoved.connect(
             self.onRowsAboutToBeRemoved)
         self.treeModel = QtWidgets.QFileSystemModel()
@@ -62,6 +62,10 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         layout.addWidget(self.treeView, stretch=1)
         self.setLayout(layout)
 
+        # Create data source watcher
+        self.watcher = QtCore.QFileSystemWatcher()
+        self.watcher.directoryChanged.connect(self.sourceDataChanged)
+
     @QtCore.Slot(QtCore.QItemSelection, QtCore.QItemSelection)
     def updateTreeView(self, selected, deselected):
         if self.listView.selectionModel().hasSelection():
@@ -86,12 +90,15 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         if source != '' and not self.listModel.findItems(source):
             item = QtGui.QStandardItem(source)
             self.listModel.appendRow(item)
+            self.watcher.addPath(source)
 
     @QtCore.Slot()
     def removeSources(self):
         indexes = self.listView.selectionModel().selectedIndexes()
         for index in indexes[::-1]:
+            item = self.listModel.itemFromIndex(index)
             self.listModel.removeRow(index.row())
+            self.watcher.removePath(item.text())
 
     @QtCore.Slot(QtCore.QModelIndex, int, int)
     def onRowsInserted(self, index, first, last):
