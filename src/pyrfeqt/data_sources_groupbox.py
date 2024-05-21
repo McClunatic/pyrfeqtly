@@ -11,7 +11,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
-    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState, bool)
+    sourceInserted = QtCore.Signal(str)
+    sourceRemoved = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -84,28 +85,22 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             QtWidgets.QFileDialog.Option.ShowDirsOnly)
         if source != '' and not self.listModel.findItems(source):
             item = QtGui.QStandardItem(source)
-            item.setCheckable(True)
             self.listModel.appendRow(item)
-            # Check the item to trigger onItemChanged after appending
-            item.setCheckState(QtCore.Qt.CheckState.Checked)
 
     @QtCore.Slot()
     def removeSources(self):
         indexes = self.listView.selectionModel().selectedIndexes()
         for index in indexes[::-1]:
-            # Uncheck the item to trigger onItemChanged before removing
-            self.listModel.itemFromIndex(index).setCheckState(
-                QtCore.Qt.CheckState.Unchecked)
             self.listModel.removeRow(index.row())
 
-    @QtCore.Slot(QtGui.QStandardItem)
-    def onItemChanged(self, item):
-        # text, checkState, removed=False
-        self.sourceChanged.emit(item.text(), item.checkState(), False)
+    @QtCore.Slot(QtCore.QModelIndex, int, int)
+    def onRowsInserted(self, index, first, last):
+        items = [self.listModel.item(row, 0) for row in range(first, last + 1)]
+        for item in items:
+            self.sourceInserted.emit(item.text())
 
     @QtCore.Slot(QtCore.QModelIndex, int, int)
     def onRowsAboutToBeRemoved(self, index, first, last):
         items = [self.listModel.item(row, 0) for row in range(first, last + 1)]
         for item in items:
-            # text, checkState, removed=False
-            self.sourceChanged.emit(item.text(), item.checkState(), True)
+            self.sourceRemoved.emit(item.text())

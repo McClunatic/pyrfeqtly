@@ -5,7 +5,7 @@
 from functools import partial
 from typing import List, Optional
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class QSpinBox(QtWidgets.QSpinBox):
@@ -18,83 +18,147 @@ class QSpinBox(QtWidgets.QSpinBox):
             return baseSizeHint
 
 
-class SpinBoxStack(QtWidgets.QWidget):
+class SpinBoxPair(QtWidgets.QWidget):
 
-    valueChanged = QtCore.Signal(int, int, int)
+    valueChanged = QtCore.Signal(int, int)
 
     def __init__(
         self,
         minimum: int,
         maximum: int,
-        rows: int = 3,
+        parent: Optional[QtWidgets.QWidget] = None,
+    ) -> None:
+        """Constructor."""
+        super().__init__(parent=parent)
+
+        layout = QtWidgets.QHBoxLayout()
+        self.lbound = QSpinBox()
+        self.lbound.setKeyboardTracking(False)
+        self.lbound.setRange(minimum, maximum)
+        self.lbound.setValue(minimum)
+        self.lbound.valueChanged.connect(
+            partial(self.onValueChanged, left=True))
+        layout.addWidget(self.lbound)
+        self.rbound = QSpinBox()
+        self.rbound.setKeyboardTracking(False)
+        self.rbound.setRange(minimum, maximum)
+        self.rbound.setValue(minimum)
+        self.rbound.valueChanged.connect(
+            partial(self.onValueChanged, left=False))
+        layout.addWidget(self.rbound)
+
+        self.setLayout(layout)
+
+    @QtCore.Slot(int)
+    def onValueChanged(self, value: int, left: bool):
+        bound = self.lbound if left else self.rbound
+        otherBound = self.rbound if left else self.lbound
+        otherValue = otherBound.value()
+        if (-1 if left else 1) * (value - otherValue) < 0:
+            bound.setValue(otherValue)
+            otherBound.setValue(value)
+
+        self.valueChanged.emit(*sorted((value, otherValue)))
+
+    @QtCore.Slot(int, int)
+    def updateRange(self, lbound: int, rbound: int):
+        self.blockSignals(True)
+        self.lbound.setValue(lbound)
+        self.rbound.setValue(rbound)
+        self.blockSignals(False)
+
+
+class ComboBoxPair(QtWidgets.QWidget):
+
+    valueChanged = QtCore.Signal(int, int)
+
+    def __init__(
+        self,
+        signalOptions: List[str],
+        spectrOptions: List[str],
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
         super().__init__(parent=parent)
 
         layout = QtWidgets.QGridLayout()
-        self.spins = []
-        for row in range(rows):
-            spinRow = []
-            for col in range(2):
-                spin = QSpinBox()
-                spin.setKeyboardTracking(False)
-                spin.setRange(minimum, maximum)
-                spin.setValue(minimum if col == 0 else maximum)
-                spin.valueChanged.connect(
-                    partial(self.onValueChanged, row=row, col=col))
-                layout.addWidget(spin, row, col)
-
-                spinRow.append(spin)
-            self.spins.append(spinRow)
+        self.signal = QtWidgets.QComboBox()
+        self.signal.addItems(signalOptions)
+        self.signal.currentTextChanged.connect(self.onCurrentTextChanged)
+        layout.addWidget(QtWidgets.QLabel(self.tr('Signal')), 0, 0)
+        layout.addWidget(self.signal, 1, 0)
+        self.spectr = QtWidgets.QComboBox()
+        self.spectr.addItems(spectrOptions)
+        self.spectr.currentTextChanged.connect(self.onCurrentTextChanged)
+        layout.addWidget(QtWidgets.QLabel(self.tr('Spectrogram')), 0, 1)
+        layout.addWidget(self.spectr, 1, 1)
 
         self.setLayout(layout)
 
     @QtCore.Slot(int)
-    def onValueChanged(self, value: int, row: int, col: int):
-        otherCol = (col + 1) % 2
-        otherValue = self.spins[row][otherCol].value()
-        if (col - otherCol) * (value - otherValue) < 0:
-            self.spins[row][col].setValue(otherValue)
-            self.spins[row][otherCol].setValue(value)
-
-        self.valueChanged.emit(row, *sorted((value, otherValue)))
+    def onCurrentTextChanged(self, value: str):
+        self.valueChanged.emit(
+            self.signal.currentText(), self.spectr.currentText())
 
 
-class MultiModeBox(QtWidgets.QWidget):
+class SelectedSourcesGroupBox(QtWidgets.QWidget):
 
-    valueChanged = QtCore.Signal(str)
+    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
 
     def __init__(
         self,
-        name: str,
-        options: List[str],
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
         super().__init__(parent=parent)
 
+        self.listModel = QtGui.QStandardItemModel()
+        self.listModel.itemChanged.connect(self.onItemChanged)
+        self.listModel.rowsAboutToBeRemoved.connect(
+            self.onRowsAboutToBeRemoved)
+
+        self.listView = QtWidgets.QListView()
+        self.listView.setSizeAdjustPolicy(
+            QtWidgets.QListView.SizeAdjustPolicy.AdjustToContents)
+        self.listView.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+        self.listView.setModel(self.listModel)
+
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel(self.tr(name)))
-        self.radios = [QtWidgets.QRadioButton(self.tr(opt)) for opt in options]
-        self.radios[0].setChecked(True)
-        for radio, opt in zip(self.radios, options):
-            radio.toggled.connect(partial(self.onToggled, option=opt))
-            layout.addWidget(radio)
-        layout.addStretch()
+        layout.addWidget(self.listView)
         self.setLayout(layout)
 
-    @QtCore.Slot(bool, str)
-    def onToggled(self, checked: bool, option: str):
-        if checked:
-            self.valueChanged.emit(option)
+    @QtCore.Slot(str)
+    def addSource(self, source: str):
+        item = QtGui.QStandardItem(source)
+        item.setCheckable(True)
+        self.listModel.appendRow(item)
+        # Check the item to trigger onItemChanged after appending
+        item.setCheckState(QtCore.Qt.CheckState.Checked)
+
+    @QtCore.Slot(str)
+    def removeSource(self, source: str):
+        items = self.listModel.findItems(source)
+        for item in items:
+            # Uncheck the item to trigger onItemChanged before removing
+            item.setCheckState(QtCore.Qt.CheckState.Unchecked)
+            index = self.listModel.indexFromItem(item)
+            self.listModel.removeRow(index.row())
+
+    @QtCore.Slot(QtGui.QStandardItem)
+    def onItemChanged(self, item):
+        self.sourceChanged.emit(item.text(), item.checkState())
 
 
 class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
-    rangeChanged = QtCore.Signal(int, int, int)
-    signalModeChanged = QtCore.Signal(str)
-    spectrModeChanged = QtCore.Signal(str)
+    xRangeChanged = QtCore.Signal(int, int)
+    modesChanged = QtCore.Signal(str, str)
+    sourceChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
+
+    xRangeUpdated = QtCore.Signal(int, int)
+    sourceInserted = QtCore.Signal(str)
+    sourceRemoved = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -106,29 +170,23 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
         layout = QtWidgets.QFormLayout()
 
-        self.axisRanges = SpinBoxStack(0, 720, parent=self)
-        self.axisRanges.valueChanged.connect(self.rangeChanged)
+        self.xAxisRange = SpinBoxPair(0, 720, parent=self)
+        self.xAxisRange.valueChanged.connect(self.xRangeChanged)
+        self.xRangeUpdated.connect(self.xAxisRange.updateRange)
 
-        self.signalAggregationMode = MultiModeBox(
-            'Signals', ['none', 'mean', 'sum', 'max'], self)
-        self.signalAggregationMode.valueChanged.connect(self.signalModeChanged)
+        self.aggregationModes = ComboBoxPair(
+            signalOptions=['none', 'mean', 'sum', 'max'],
+            spectrOptions=['none', 'mean', 'sum', 'max'],
+            parent=self)
+        self.aggregationModes.valueChanged.connect(self.modesChanged)
 
-        self.spectrAggregationMode = MultiModeBox(
-            'Spectrograms', ['mean', 'sum', 'max'], self)
-        self.spectrAggregationMode.valueChanged.connect(self.spectrModeChanged)
+        self.dataSources = SelectedSourcesGroupBox(parent=self)
+        self.dataSources.sourceChanged.connect(self.sourceChanged)
+        self.sourceInserted.connect(self.dataSources.addSource)
+        self.sourceRemoved.connect(self.dataSources.removeSource)
 
-        hbox = QtWidgets.QHBoxLayout()
-        hbox.addWidget(self.signalAggregationMode)
-        hbox.addWidget(self.spectrAggregationMode)
-
-        layout.addRow('Axis ranges', self.axisRanges)
-        layout.addRow('Aggregation mode', hbox)
+        layout.addRow('x-axis range', self.xAxisRange)
+        layout.addRow('aggregation modes', self.aggregationModes)
+        layout.addRow('data sources', self.dataSources)
 
         self.setLayout(layout)
-
-    @QtCore.Slot(int, int, int)
-    def updateRange(self, row: int, minimum: int, maximum: int):
-        self.axisRanges.blockSignals(True)
-        self.axisRanges.spins[row][0].setValue(minimum)
-        self.axisRanges.spins[row][1].setValue(maximum)
-        self.axisRanges.blockSignals(False)

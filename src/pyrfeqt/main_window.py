@@ -27,25 +27,39 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createEditActions()
         self.createHelpActions()
 
-        # Create settings sliders
-        self.sliderBox = PlotOptionsGroupBox('Plot options', self)
+        # Create plot options widgets
+        self.plotOptionsBoxes = [
+            PlotOptionsGroupBox(self.tr(f'Plot options ({pos})'))
+            for pos in ('left', 'center', 'right')]
 
-        # Create tree views
+        # Create data sources widget
         self.sourcesBox = DataSourcesGroupBox('Data sources', self)
 
-        # Create canvases widget
-        # self.canvasWidget = widgets.CanvasesWidget(self)
-        self.canvasWidget = GraphicsWidget(self)
+        # Create graphics widgets
+        self.graphicsWidgets = [
+            GraphicsWidget(self) for _ in ('left', 'center', 'right')]
 
         # Create layout
         sideLayout = QtWidgets.QVBoxLayout()
-        sideLayout.addWidget(self.sliderBox)
+        for optionsBox in self.plotOptionsBoxes:
+            sideLayout.addWidget(optionsBox)
         sideLayout.addWidget(self.sourcesBox, stretch=1)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(sideLayout)
-        layout.addWidget(self.canvasWidget, stretch=1)
+        for graphicsWidget in self.graphicsWidgets:
+            layout.addWidget(graphicsWidget, stretch=1)
         self.widget.setLayout(layout)
+
+        # Connect signals and slots
+        for opts, graphics in zip(self.plotOptionsBoxes, self.graphicsWidgets):
+            self.sourcesBox.sourceInserted.connect(opts.sourceInserted)
+            self.sourcesBox.sourceRemoved.connect(opts.sourceRemoved)
+
+            opts.modesChanged.connect()
+            opts.sourceChanged.connect()
+
+            optionsBox.xRangeChanged.connect()
 
         self.sliderBox.rangeChanged.connect(self.canvasWidget.updateRange)
         self.canvasWidget.rangeChanged.connect(self.sliderBox.updateRange)
