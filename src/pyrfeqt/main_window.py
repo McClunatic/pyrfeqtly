@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: MIT
 """Defines the main window class."""
 
-import random
-
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .data_container import DataContainer
@@ -23,35 +21,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.widget = QtWidgets.QWidget()
         self.setCentralWidget(self.widget)
 
-        self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
-        self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
-        self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
-
-        self.createFileActions()
-        self.createEditActions()
-        self.createHelpActions()
-
-        # Create tabbed set of plot options widgets
-        plotButtonLayout = QtWidgets.QHBoxLayout()
-        plotButtonGroup = QtWidgets.QButtonGroup(self)
-        plotOptionsWidget = QtWidgets.QStackedWidget()
-        self.plotOptionsBoxes = []
-        for idx, label in enumerate(('left', 'center', 'right')):
-            button = QtWidgets.QPushButton(self.tr(label))
-            button.setCheckable(True)
-            button.setChecked(idx == 0)
-            plotButtonGroup.addButton(button, id=idx)
-            plotButtonLayout.addWidget(button)
-
-            opts = PlotOptionsGroupBox(self.tr('Plot options'))
-            plotOptionsWidget.addWidget(opts)
-            self.plotOptionsBoxes.append(opts)
-
-        plotButtonGroup.idClicked.connect(plotOptionsWidget.setCurrentIndex)
-
-        # Create data sources widget
-        self.sourcesBox = DataSourcesGroupBox('Data sources', self)
-
         # Create the data container object
         # TODO: make sure these get set on app init somehow
         self.data = DataContainer(
@@ -59,33 +28,19 @@ class MainWindow(QtWidgets.QMainWindow):
             history_size=100,
             sample_size=720)
 
-        # Create graphics widgets
-        self.graphicsWidgets = [
-            GraphicsWidget(data=self.data, title=title, parent=self)
-            for title in ('left', 'center', 'right')]
+        self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
+        self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
+        self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
+        self.createFileActions()
+        self.createEditActions()
+        self.createHelpActions()
 
-        # Create layout
-        sideLayout = QtWidgets.QVBoxLayout()
-        sideLayout.addLayout(plotButtonLayout)
-        sideLayout.addWidget(plotOptionsWidget)
-        sideLayout.addWidget(self.sourcesBox, stretch=1)
-
-        layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(sideLayout)
-        for graphicsWidget in self.graphicsWidgets:
-            layout.addWidget(graphicsWidget, stretch=1)
-        self.widget.setLayout(layout)
-
-        # Connect signals and slots
-        self.sourcesBox.sourceDataChanged.connect(self.updateData)
-        for opts, gfxs in zip(self.plotOptionsBoxes, self.graphicsWidgets):
-            self.sourcesBox.sourceInserted.connect(opts.insertSource)
-            self.sourcesBox.sourceRemoved.connect(opts.removeSource)
-            opts.aggregationModesChanged.connect(gfxs.updateAggregationModes)
-            opts.sourceSelectionChanged.connect(gfxs.updateSourceSelection)
-            opts.xRangeChanged.connect(gfxs.updateXRange)
-            gfxs.xRangeChanged.connect(opts.updateXRange)
-            self.dataUpdated.connect(self.data.updated)
+        self.sideLayout = QtWidgets.QVBoxLayout()
+        self.plotOptionsBox = QtWidgets.QStackedWidget()
+        self.dataSourcesBox = DataSourcesGroupBox('Data sources', self)
+        self.createSideLayout()
+        self.createMainLayout()
+        self.connectSignalsAndSlots()
 
     def createFileActions(self):
         self.newAct = QtGui.QAction(
@@ -142,9 +97,48 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.helpMenu.addAction(self.aboutAct)
 
-    @QtCore.Slot()
-    def magic(self):
-        self.text.setText(random.choice(self.hello))
+    def createSideLayout(self):
+        # Create tabbed set of plot options widgets
+        plotButtonLayout = QtWidgets.QHBoxLayout()
+        plotButtonGroup = QtWidgets.QButtonGroup(self)
+        plotButtonGroup.idClicked.connect(
+            self.plotOptionsBox.setCurrentIndex)
+
+        for idx, label in enumerate(('left', 'center', 'right')):
+            button = QtWidgets.QPushButton(self.tr(label))
+            button.setCheckable(True)
+            button.setChecked(idx == 0)
+            plotButtonGroup.addButton(button, id=idx)
+            plotButtonLayout.addWidget(button)
+            opts = PlotOptionsGroupBox(self.tr('Plot options'))
+            self.plotOptionsBox.addWidget(opts)
+
+        self.sideLayout.addLayout(plotButtonLayout)
+        self.sideLayout.addWidget(self.plotOptionsBox)
+        self.sideLayout.addWidget(self.dataSourcesBox, stretch=1)
+
+    def createMainLayout(self):
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(self.sideLayout)
+        for title in ('left', 'center', 'right'):
+            widget = GraphicsWidget(data=self.data, title=title, parent=self)
+            layout.addWidget(widget, stretch=1)
+
+        self.widget.setLayout(layout)
+
+    def connectSignalsAndSlots(self):
+        self.dataUpdated.connect(self.data.updated)
+        self.dataSourcesBox.sourceDataChanged.connect(self.updateData)
+        for idx in range(3):
+            opts = self.plotOptionsBox.widget(idx)
+            gfxs = self.widget.layout().itemAt(idx + 1).widget()
+
+            self.dataSourcesBox.sourceInserted.connect(opts.insertSource)
+            self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
+            opts.aggregationModesChanged.connect(gfxs.updateAggregationModes)
+            opts.sourceSelectionChanged.connect(gfxs.updateSourceSelection)
+            opts.xRangeChanged.connect(gfxs.updateXRange)
+            gfxs.xRangeChanged.connect(opts.updateXRange)
 
     @QtCore.Slot(str)
     def updateData(self, watchDir: str):
