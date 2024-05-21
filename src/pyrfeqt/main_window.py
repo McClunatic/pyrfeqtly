@@ -204,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addLayout(sideLayout)
         for title in ('left', 'center', 'right'):
             window_size = settings.value(
-                f'default/graphics/{title}/window_size', type=int),
+                f'default/graphics/{title}/window_size', type=int)
             widget = GraphicsWidget(
                 data=self.data,
                 window_size=window_size,
