@@ -90,31 +90,34 @@ class DataContainer(QtCore.QObject):
         entries = sorted(
             pathlib.Path(path).glob('*.npy'), key=lambda e: e.stat().st_mtime)
         for entry in entries[-self.history_size:]:
-            # Case 1: data is not accessible; continue
+            mtime = entry.stat().st_mtime
+            mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
+
+            # Case 1: mtime in there, data is already written the data for pix
+            if mtime_bin in self.set_mtimes:
+                tmask = mtime_bin == self.mtimes[0]
+            #   1a: already written the data for pix
+                if np.any(~np.isnan(self.data[pix, tmask])):
+                    continue
+
+            # Case 2: data is not accessible; continue
             try:
                 with open(entry, 'rb') as npy_file:
                     new_data = np.load(npy_file)
             except EOFError:
                 continue
 
-            mtime = entry.stat().st_mtime
-            mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
-
-            # Case 2: mtime is in there
+            # Case 3: mtime in there, data not already written; use tmask later
             if mtime_bin in self.set_mtimes:
-                tmask = mtime_bin == self.mtimes[0]
-            #   2a: already written the data for pix
-                if np.any(~np.isnan(self.data[pix, tmask])):
-                    continue
-            #   2b: it's not already written; use tmask later
-            # Case 3: mtime is not in there and size == history_size
+                pass
+            # Case 4: mtime is not in there and size == history_size
             elif self.mtimes.shape[1] == self.history_size:
                 tmask = self.mtimes.shape[1] - 1
                 self.set_mtimes.remove(self.mtimes[0, 0])
                 self.mtimes = np.roll(self.mtimes, -1, axis=1)
                 self.mtimes[:, -1] = [mtime_bin, mtime]
                 self.data = np.roll(self.data, -1, axis=1)
-            # Case 4: mtime is not in there and size < history_size
+            # Case 5: mtime is not in there and size < history_size
             else:
                 tmask = self.mtimes.shape[1]
                 self.mtimes = np.concatenate(
