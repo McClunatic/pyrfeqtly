@@ -24,6 +24,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         super(DataSourcesGroupBox, self).__init__(title=title, parent=parent)
 
         self.listModel = QtGui.QStandardItemModel()
+        self.listModel.rowsInserted.connect(self.onRowsInserted)
         self.listModel.rowsAboutToBeRemoved.connect(
             self.onRowsAboutToBeRemoved)
         self.treeModel = QtWidgets.QFileSystemModel()
@@ -102,6 +103,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(QtCore.QModelIndex, int, int)
     def onRowsInserted(self, index, first, last):
+        print('onRowsInserted')
         items = [self.listModel.item(row, 0) for row in range(first, last + 1)]
         for item in items:
             self.sourceInserted.emit(item.text())
