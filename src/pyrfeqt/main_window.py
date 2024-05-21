@@ -18,8 +18,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        self.widget = QtWidgets.QWidget()
-        self.setCentralWidget(self.widget)
+        self.setCentralWidget(QtWidgets.QWidget())
 
         # Create the data container object
         # TODO: make sure these get set on app init somehow
@@ -31,18 +30,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
         self.helpMenu = self.menuBar().addMenu(self.tr('&Help'))
-        self.createFileActions()
-        self.createEditActions()
-        self.createHelpActions()
 
-        self.sideLayout = QtWidgets.QVBoxLayout()
+        self.newAct = self.openAct = self.saveAct = None
+        self.editAct = self.prefAct = None
+        self.aboutAct = None
+
         self.plotOptionsBox = QtWidgets.QStackedWidget()
         self.dataSourcesBox = DataSourcesGroupBox('Data sources', self)
-        self.createSideLayout()
-        self.createMainLayout()
-        self.connectSignalsAndSlots()
 
-    def createFileActions(self):
+        self._createFileActions()
+        self._createEditActions()
+        self._createHelpActions()
+
+        self._buildLayout()
+        self._connectSignalsAndSlots()
+
+    @QtCore.Slot(str)
+    def updateData(self, watchDir: str):
+        self.data.update(path=watchDir)
+        self.dataUpdated.emit()
+
+    def _createFileActions(self):
         self.newAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentNew),
             self.tr('&New'),
@@ -71,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu.addAction(self.openAct)
         self.fileMenu.addAction(self.saveAct)
 
-    def createEditActions(self):
+    def _createEditActions(self):
         self.editAct = QtGui.QAction(
             self.tr('&Edit'), self)
         self.editAct.setStatusTip(self.tr('Edit current configuration'))
@@ -87,18 +95,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.editMenu.addSeparator()
         self.editMenu.addAction(self.prefAct)
 
-    def createHelpActions(self):
+    def _createHelpActions(self):
         self.aboutAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.HelpAbout),
             self.tr('&About'),
             self)
-        self.newAct.setStatusTip(self.tr('Show about'))
+        self.aboutAct.setStatusTip(self.tr('Show about'))
         # TODO: connect self.aboutAct to function
 
         self.helpMenu.addAction(self.aboutAct)
 
-    def createSideLayout(self):
-        # Create tabbed set of plot options widgets
+    def _buildLayout(self):
         plotButtonLayout = QtWidgets.QHBoxLayout()
         plotButtonGroup = QtWidgets.QButtonGroup(self)
         plotButtonGroup.idClicked.connect(
@@ -113,25 +120,25 @@ class MainWindow(QtWidgets.QMainWindow):
             opts = PlotOptionsGroupBox(self.tr('Plot options'))
             self.plotOptionsBox.addWidget(opts)
 
-        self.sideLayout.addLayout(plotButtonLayout)
-        self.sideLayout.addWidget(self.plotOptionsBox)
-        self.sideLayout.addWidget(self.dataSourcesBox, stretch=1)
+        sideLayout = QtWidgets.QVBoxLayout()
+        sideLayout.addLayout(plotButtonLayout)
+        sideLayout.addWidget(self.plotOptionsBox)
+        sideLayout.addWidget(self.dataSourcesBox, stretch=1)
 
-    def createMainLayout(self):
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(self.sideLayout)
+        layout.addLayout(sideLayout)
         for title in ('left', 'center', 'right'):
             widget = GraphicsWidget(data=self.data, title=title, parent=self)
             layout.addWidget(widget, stretch=1)
 
-        self.widget.setLayout(layout)
+        self.centralWidget().setLayout(layout)
 
-    def connectSignalsAndSlots(self):
+    def _connectSignalsAndSlots(self):
         self.dataUpdated.connect(self.data.updated)
         self.dataSourcesBox.sourceDataChanged.connect(self.updateData)
         for idx in range(3):
             opts = self.plotOptionsBox.widget(idx)
-            gfxs = self.widget.layout().itemAt(idx + 1).widget()
+            gfxs = self.centralWidget().layout().itemAt(idx + 1).widget()
 
             self.dataSourcesBox.sourceInserted.connect(opts.insertSource)
             self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
@@ -139,8 +146,3 @@ class MainWindow(QtWidgets.QMainWindow):
             opts.sourceSelectionChanged.connect(gfxs.updateSourceSelection)
             opts.xRangeChanged.connect(gfxs.updateXRange)
             gfxs.xRangeChanged.connect(opts.updateXRange)
-
-    @QtCore.Slot(str)
-    def updateData(self, watchDir: str):
-        self.data.update(path=watchDir)
-        self.dataUpdated.emit()
