@@ -130,10 +130,11 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         ]
         numSources = curveData.shape[0]
         numCurves = len(self.signalPlot.curves)
+        colorIndices = [self.data.paths.index(src) for src in selection]
         # Add curve data for all sources
         for pix in range(numSources):
             pixData = curveData[pix]
-            color = tab_colors[pix % len(tab_colors)]
+            color = tab_colors[colorIndices[pix] % len(tab_colors)]
             name = pathlib.Path(selection[pix]).name
             if pix < numCurves:
                 curve = self.signalPlot.curves[pix]
