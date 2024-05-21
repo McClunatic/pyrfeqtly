@@ -42,9 +42,9 @@ class DataContainer(QtCore.QObject):
 
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
-        bin_width = settings.value(f'{group}/data/bin_width')
-        history_size = settings.value(f'{group}/data/history_size')
-        sample_size = settings.value(f'{group}/data/sample_size')
+        bin_width = settings.value(f'{group}/data/bin_width', type=float)
+        history_size = settings.value(f'{group}/data/history_size', type=int)
+        sample_size = settings.value(f'{group}/data/sample_size', type=int)
 
         if (self.bin_width != bin_width or self.sample_size != sample_size):
             self.mtimes = np.empty((2, 0), dtype=float)

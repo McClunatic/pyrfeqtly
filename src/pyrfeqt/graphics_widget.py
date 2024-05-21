@@ -61,13 +61,13 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
         self.window_size = settings.value(
-            f'{group}/graphics/{self.title}/window_size')
+            f'{group}/graphics/{self.title}/window_size', type=int)
 
         xRange = settings.value(
             f'{group}/plotOptions/{self.title}/xRange', type=list)
         aggregationModes = settings.value(
             f'{group}/plotOptions/{self.title}/aggregationModes', type=list)
-        self.updateXRange(*xRange)
+        self.updateXRange(*[int(lim) for lim in xRange])
         self.updateAggregationModes(*aggregationModes)
 
         self.sourceSelection.clear()
@@ -76,7 +76,8 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         for idx in range(size):
             settings.setArrayIndex(idx)
             path = settings.value(f'{group}/plotOptions/{self.pos}/path')
-            checked = settings.value(f'{group}/plotOptions/{self.pos}/checked')
+            checked = settings.value(
+                f'{group}/plotOptions/{self.pos}/checked', type=bool)
             self.sourceSelection[path] = checked
         settings.endArray()
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 """Defines the plot options groupbox class."""
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -167,6 +167,7 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self,
         title: str,
         pos: str,
+        xRange: Tuple[int, int],
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
@@ -175,13 +176,13 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
         layout = QtWidgets.QFormLayout()
 
-        self.xAxisRange = SpinBoxPair(0, 720, parent=self)
+        self.xAxisRange = SpinBoxPair(*xRange, parent=self)
         self.xAxisRange.valueChanged.connect(self.xRangeChanged)
         self.updateXRange.connect(self.xAxisRange.updateRange)
 
         self.aggregationModes = ComboBoxPair(
             signalOptions=['none', 'mean', 'sum', 'max'],
-            spectrOptions=['none', 'mean', 'sum', 'max'],
+            spectrOptions=['mean', 'sum', 'max'],
             parent=self)
         self.aggregationModes.valueChanged.connect(
             self.aggregationModesChanged)
@@ -202,7 +203,7 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         xRange = settings.value(
             f'{group}/plotOptions/{self.pos}/xRange', type=list)
         self.xAxisRange.blockSignals(True)
-        self.xAxisRange.updateRange(*xRange)
+        self.xAxisRange.updateRange(*[int(lim) for lim in xRange])
         self.xAxisRange.blockSignals(False)
 
         aggregationModes = settings.value(
@@ -221,7 +222,8 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
                 settings.value(f'{group}/plotOptions/{self.pos}/path'))
             sourceSelection.append((
                 settings.value(f'{group}/plotOptions/{self.pos}/path'),
-                settings.value(f'{group}/plotOptions/{self.pos}/checked')))
+                settings.value(
+                    f'{group}/plotOptions/{self.pos}/checked', type=bool)))
         settings.endArray()
 
         self.dataSources.blockSignals(True)

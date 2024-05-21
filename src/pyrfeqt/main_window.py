@@ -40,9 +40,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create the data container object
         settings = QtCore.QSettings()
         self.data = DataContainer(
-            bin_width=settings.value('default/data/bin_width'),
-            sample_size=settings.value('default/data/sample_size'),
-            history_size=settings.value('default/data/history_size'))
+            bin_width=settings.value('default/data/bin_width', type=float),
+            sample_size=settings.value('default/data/sample_size', type=int),
+            history_size=settings.value('default/data/history_size', type=int))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
@@ -114,39 +114,6 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.endGroup()
         settings.endGroup()
 
-    def readSettings(self, group: str = 'default'):
-        settings = QtCore.QSettings()
-        settings.beginGroup(group)
-        result = {
-            'plotOptions': {},
-            'dataSources': {},
-            'data': {},
-        }
-        settings.beginGroup('plotOptions')
-        result['plotOptions']['xRange'] = settings.value('xRange', type=list)
-        result['plotOptions']['aggregationModes'] = settings.value(
-            'aggregationModes', type=list)
-        size = settings.beginReadArray('sourceSelection')
-        sourceSelection = []
-        for idx in range(size):
-            settings.setArrayIndex(idx)
-            sourceSelection.append(
-                (settings.value('path'), settings.value('checked')))
-        settings.endArray()
-        result['plotOptions']['sourceSelection'] = sourceSelection
-        settings.endGroup()
-        settings.beginGroup('dataSources')
-        result['dataSources']['paths'] = settings.value('paths', type=list)
-        settings.endGroup()
-        settings.beginGroup('data')
-        result['data']['bin_width'] = settings.value('bin_width')
-        result['data']['sample_size'] = settings.value('sample_size')
-        result['data']['history_size'] = settings.value('history_size')
-        result['data']['window_size'] = settings.value('window_size')
-        settings.endGroup()
-        settings.endGroup()
-        return result
-
     @QtCore.Slot(str)
     def updateData(self, watchDir: str):
         self.data.update(path=watchDir)
@@ -208,18 +175,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.helpMenu.addAction(self.aboutAct)
 
     def _buildLayout(self):
+        settings = QtCore.QSettings()
         plotButtonLayout = QtWidgets.QHBoxLayout()
         plotButtonGroup = QtWidgets.QButtonGroup(self)
         plotButtonGroup.idClicked.connect(
             self.plotOptionsBox.setCurrentIndex)
 
-        for idx, label in enumerate(('left', 'center', 'right')):
-            button = QtWidgets.QPushButton(self.tr(label))
+        for idx, pos in enumerate(('left', 'center', 'right')):
+            button = QtWidgets.QPushButton(self.tr(pos))
             button.setCheckable(True)
             button.setChecked(idx == 0)
             plotButtonGroup.addButton(button, id=idx)
             plotButtonLayout.addWidget(button)
-            opts = PlotOptionsGroupBox(self.tr('Plot options'), pos=label)
+            xRange = settings.value(
+                f'default/plotOptions/{pos}/xRange', type=list)
+            opts = PlotOptionsGroupBox(
+                title=self.tr('Plot options'),
+                pos=pos,
+                xRange=[int(lim) for lim in xRange])
             self.plotOptionsBox.addWidget(opts)
 
         sideLayout = QtWidgets.QVBoxLayout()
@@ -229,11 +202,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(sideLayout)
-        settings = QtCore.QSettings()
         for title in ('left', 'center', 'right'):
+            window_size = settings.value(
+                f'default/graphics/{title}/window_size', type=int),
             widget = GraphicsWidget(
                 data=self.data,
-                window_size=settings.value('default/data/window_size'),
+                window_size=window_size,
                 title=title,
                 parent=self)
             layout.addWidget(widget, stretch=1)
