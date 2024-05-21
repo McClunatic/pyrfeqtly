@@ -111,3 +111,21 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         items = [self.listModel.item(row, 0) for row in range(first, last + 1)]
         for item in items:
             self.sourceRemoved.emit(item.text())
+
+    def applySettings(self, group: str = 'default'):
+        self.blockSignals(True)
+        settings = QtCore.QSettings()
+        paths = settings.value(f'{group}/dataSources/paths', type=list)
+        # Loop over sources in reverse order: if not in paths, remove
+        for row in range(self.listModel.rowCount() - 1, -1, -1):
+            item = self.listModel.index(row, 0)
+            if item.text() not in paths:
+                self.listModel.removeRow(row)
+                self.watcher.removePath(item.text())
+        # Loop over paths: if not in sources, add
+        for source in paths:
+            if not self.listModel.findItems(source):
+                item = QtGui.QStandardItem(source)
+                self.listModel.appendRow(item)
+                self.watcher.addPath(source)
+        self.blockSignals(False)

@@ -27,8 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.data = DataContainer(
             bin_width=settings.value('default/data/bin_width'),
             sample_size=settings.value('default/data/sample_size'),
-            history_size=settings.value('default/data/history_size'),
-            window_size=settings.value('default/data/window_size'))
+            history_size=settings.value('default/data/history_size'))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
@@ -48,6 +47,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self._buildLayout()
         self._connectSignalsAndSlots()
 
+    def plotOptionsWidget(self, index: int):
+        return self.plotOptionsBox.widget(index)
+
+    def dataSourcesWidget(self):
+        return self.dataSourcesBox
+
+    def graphicsWidget(self, index: int):
+        return self.centralWidget().layout().itemAt(index + 1).widget()
+
+    def applySettings(self, group: str = 'default'):
+        self.data.applySettings(group)
+        self.dataSourcesWidget().applySettings(group)
+        for idx in range(3):
+            self.plotOptionsWidget(idx).applySettings(group)
+        for idx in range(3):
+            self.graphicsWidget(idx).applySettings(group)
+        for watchDir in self.dataSourcesWidget().watcher.directories():
+            self.data.update(path=watchDir)
+            self.dataUpdated.emit()
+
     def writeDefaultSettings(self):
         settings = QtCore.QSettings()
         groups = settings.childGroups()
@@ -56,10 +75,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         settings.beginGroup('default')
         settings.beginGroup('plotOptions')
-        settings.setValue('xRange', [0, SAMPLE_SIZE])
-        settings.setValue('aggregationModes', ['none', 'mean'])
-        settings.beginWriteArray('sourceSelection')
-        settings.endArray()
+        for pos in ('left', 'center', 'right'):
+            settings.beginGroup(pos)
+            settings.setValue('xRange', [0, SAMPLE_SIZE])
+            settings.setValue('aggregationModes', ['none', 'mean'])
+            settings.beginWriteArray('sourceSelection')
+            settings.endArray()
+            settings.endGroup()
         settings.endGroup()
         settings.beginGroup('dataSources')
         settings.setValue('paths', [])
@@ -68,7 +90,12 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.setValue('bin_width', BIN_WIDTH)
         settings.setValue('sample_size', SAMPLE_SIZE)
         settings.setValue('history_size', HISTORY_SIZE)
-        settings.setValue('window_size', WINDOW_SIZE)
+        settings.endGroup()
+        settings.beginGroup('graphics')
+        for title in ('left', 'center', 'right'):
+            settings.beginGroup(title)
+            settings.setValue('window_size', WINDOW_SIZE)
+            settings.endGroup()
         settings.endGroup()
         settings.endGroup()
 
@@ -177,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
             button.setChecked(idx == 0)
             plotButtonGroup.addButton(button, id=idx)
             plotButtonLayout.addWidget(button)
-            opts = PlotOptionsGroupBox(self.tr('Plot options'))
+            opts = PlotOptionsGroupBox(self.tr('Plot options'), pos=label)
             self.plotOptionsBox.addWidget(opts)
 
         sideLayout = QtWidgets.QVBoxLayout()
@@ -187,8 +214,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(sideLayout)
+        settings = QtCore.QSettings()
         for title in ('left', 'center', 'right'):
-            widget = GraphicsWidget(data=self.data, title=title, parent=self)
+            widget = GraphicsWidget(
+                data=self.data,
+                window_size=settings.value('default/data/window_size'),
+                title=title,
+                parent=self)
             layout.addWidget(widget, stretch=1)
 
         self.centralWidget().setLayout(layout)

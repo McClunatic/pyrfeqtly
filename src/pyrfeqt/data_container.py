@@ -23,8 +23,10 @@ class DataContainer(QtCore.QObject):
         parent: QtCore.QObject = None,
     ):
         super().__init__(parent=parent)
+
         self.bin_width = bin_width
         self.history_size = history_size
+        self.sample_size = sample_size
 
         #: List[str]
         self.paths = []
@@ -36,7 +38,22 @@ class DataContainer(QtCore.QObject):
         self.set_mtimes = set()
 
         #: np.ndarray of float64
-        self.data = np.empty((0, 0, sample_size), dtype=float)
+        self.data = np.empty((0, 0, self.sample_size), dtype=float)
+
+    def applySettings(self, group: str = 'default'):
+        settings = QtCore.QSettings()
+        bin_width = settings.value(f'{group}/data/bin_width')
+        history_size = settings.value(f'{group}/data/history_size')
+        sample_size = settings.value(f'{group}/data/sample_size')
+
+        if (self.bin_width != bin_width or self.sample_size != sample_size):
+            self.mtimes = np.empty((2, 0), dtype=float)
+            self.set_mtimes = set()
+            self.data = np.empty((0, 0, sample_size), dtype=float)
+
+        self.bin_width = bin_width
+        self.history_size = history_size
+        self.sample_size = sample_size
 
     def remove_nan_samples(self):
         # Find tix mask for deletion

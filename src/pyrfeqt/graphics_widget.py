@@ -22,17 +22,22 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
     xRangeChanged = QtCore.Signal(int, int)
 
-    def __init__(self, data: DataContainer, title=None, parent=None):
+    def __init__(
+        self,
+        data: DataContainer,
+        window_size: int,
+        title=None,
+        parent=None,
+    ):
         super().__init__(parent=parent, title=title)
 
         self.data = data
         self.data.updated.connect(self.updatePlots)
 
-        # TODO: make sure these get set on app init somehow
         self.signalMode = 'none'
         self.spectrMode = 'mean'
         self.sourceSelection = {}
-        self.window = 300
+        self.window_size = window_size
 
         self.signalPlot = self.addPlot()
         self.signalPlot.addLegend(offset=(-1, -1))
@@ -52,6 +57,28 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.colorBar = pg.ColorBarItem(colorMap='plasma', orientation='h')
         self.colorBar.setVisible(False)
         self.addItem(self.colorBar)
+
+    def applySettings(self, group: str = 'default'):
+        settings = QtCore.QSettings()
+        self.window_size = settings.value(
+            f'{group}/graphics/{self.title}/window_size')
+
+        xRange = settings.value(
+            f'{group}/plotOptions/{self.title}/xRange', type=list)
+        aggregationModes = settings.value(
+            f'{group}/plotOptions/{self.title}/aggregationModes', type=list)
+        self.updateXRange(*xRange)
+        self.updateAggregationModes(*aggregationModes)
+
+        self.sourceSelection.clear()
+        size = settings.beginReadArray(
+            f'{group}/plotOptions/{self.title}/sourceSelection')
+        for idx in range(size):
+            settings.setArrayIndex(idx)
+            path = settings.value(f'{group}/plotOptions/{self.pos}/path')
+            checked = settings.value(f'{group}/plotOptions/{self.pos}/checked')
+            self.sourceSelection[path] = checked
+        settings.endArray()
 
     @QtCore.Slot(object, object)
     def onXRangeChanged(
@@ -143,5 +170,5 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.updateCurves(curveData, selection)
 
         imageData = self.data.latest(
-            selection=selection, mode=self.spectrMode, window=self.window)
+            selection=selection, mode=self.spectrMode, window=self.window_size)
         self.updateImages(imageData)

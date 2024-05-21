@@ -100,6 +100,11 @@ class ComboBoxPair(QtWidgets.QWidget):
         self.valueChanged.emit(
             self.signal.currentText(), self.spectr.currentText())
 
+    @QtCore.Slot(str, str)
+    def updateCurrentText(self, signal: str, spectr: str):
+        self.signal.setCurrentText(signal)
+        self.spectr.setCurrentText(spectr)
+
 
 class SelectedSourcesGroupBox(QtWidgets.QWidget):
 
@@ -161,10 +166,12 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
     def __init__(
         self,
         title: str,
+        pos: str,
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
         super(PlotOptionsGroupBox, self).__init__(title=title, parent=parent)
+        self.pos = pos
 
         layout = QtWidgets.QFormLayout()
 
@@ -189,3 +196,47 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         layout.addRow('data sources', self.dataSources)
 
         self.setLayout(layout)
+
+    def applySettings(self, group: str = 'default'):
+        settings = QtCore.QSettings()
+        xRange = settings.value(
+            f'{group}/plotOptions/{self.pos}/xRange', type=list)
+        self.xAxisRange.blockSignals(True)
+        self.xAxisRange.updateRange(*xRange)
+        self.xAxisRange.blockSignals(False)
+
+        aggregationModes = settings.value(
+            f'{group}/plotOptions/{self.pos}/aggregationModes', type=list)
+        self.aggregationModes.blockSignals(True)
+        self.aggregationModes.updateCurrentText(*aggregationModes)
+        self.aggregationModes.blockSignals(False)
+
+        size = settings.beginReadArray(
+            f'{group}/plotOptions/{self.pos}/sourceSelection')
+        paths = []
+        sourceSelection = []
+        for idx in range(size):
+            settings.setArrayIndex(idx)
+            paths.append(
+                settings.value(f'{group}/plotOptions/{self.pos}/path'))
+            sourceSelection.append((
+                settings.value(f'{group}/plotOptions/{self.pos}/path'),
+                settings.value(f'{group}/plotOptions/{self.pos}/checked')))
+        settings.endArray()
+
+        self.dataSources.blockSignals(True)
+        # Loop over sources in reverse order: if not in paths, remove
+        for row in range(self.dataSources.listModel.rowCount() - 1, -1, -1):
+            item = self.dataSources.listModel.index(row, 0)
+            if item.text() not in paths:
+                self.dataSources.listModel.removeRow(row)
+        # Loop over paths: if not in sources, add
+        for (source, checked) in sourceSelection:
+            checkState = (QtCore.Qt.CheckState.Checked if checked
+                          else QtCore.Qt.CheckState.Unchecked)
+            if not self.dataSources.listModel.findItems(source):
+                item = QtGui.QStandardItem(source)
+                item.setCheckable(True)
+                self.listModel.appendRow(item)
+                item.setCheckState(checkState)
+        self.dataSources.blockSignals(False)
