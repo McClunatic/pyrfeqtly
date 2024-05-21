@@ -113,6 +113,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     @QtCore.Slot(str, QtCore.Qt.CheckState)
     def updateSourceSelection(self, source: str, state: QtCore.Qt.CheckState):
         self.sourceSelection[source] = state == QtCore.Qt.CheckState.Checked
+        self.updatePlots()
 
     def updateCurves(self, curveData, selection):
         tab_colors = [
