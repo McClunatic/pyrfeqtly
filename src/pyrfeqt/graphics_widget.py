@@ -151,7 +151,8 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
     def updateImages(self, imageData):
         if imageData.size == 0:
-            self.spectrPlot.removeItem(self.spectrPlot.items[0])
+            if self.spectrPlot.items:
+                self.spectrPlot.removeItem(self.spectrPlot.items[0])
             self.colorBar.setVisible(False)
         elif self.spectrPlot.items:
             self.spectrPlot.items[0].setImage(np.flipud(imageData))
