@@ -34,10 +34,10 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.data = data
         self.data.updated.connect(self.updatePlots)
 
+        self.windowSize = windowSize
         self.signalMode = 'none'
         self.spectrMode = 'mean'
         self.sourceSelection = {}
-        self.windowSize = windowSize
 
         self.signalPlot = self.addPlot()
         self.signalPlot.addLegend(offset=(-1, -1))
@@ -60,14 +60,14 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
-        self.windowSize = settings.value(
-            f'{group}/graphics/{self.title}/windowSize', type=int)
-
         xRange = settings.value(
             f'{group}/plotOptions/{self.title}/xRange', type=list)
+        windowSize = settings.value(
+            f'{group}/plotOptions/{self.title}/windowSize', type=int)
         aggregationModes = settings.value(
             f'{group}/plotOptions/{self.title}/aggregationModes', type=list)
         self.updateXRange(*[int(lim) for lim in xRange])
+        self.updateWindowSize(windowSize)
         self.updateAggregationModes(*aggregationModes)
 
         self.sourceSelection.clear()
@@ -103,6 +103,11 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.spectrPlot.blockSignals(True)
         self.spectrPlot.setXRange(minimum, maximum)
         self.spectrPlot.blockSignals(False)
+
+    @QtCore.Slot(int)
+    def updateWindowSize(self, windowSize: int):
+        self.windowSize = windowSize
+        self.updatePlots()
 
     @QtCore.Slot(str, str)
     def updateAggregationModes(self, signalMode: str, spectrMode: str):

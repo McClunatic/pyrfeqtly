@@ -184,10 +184,13 @@ class MainWindow(QtWidgets.QMainWindow):
             plotButtonLayout.addWidget(button)
             xRange = settings.value(
                 f'default/plotOptions/{pos}/xRange', type=list)
+            windowSize = settings.value(
+                f'default/plotOptions/{pos}/windowSize', type=int)
             opts = PlotOptionsGroupBox(
                 title=self.tr('Plot options'),
                 pos=pos,
-                xRange=[int(lim) for lim in xRange])
+                xRange=[int(lim) for lim in xRange],
+                windowSize=windowSize)
             self.plotOptionsBox.addWidget(opts)
 
         sideLayout = QtWidgets.QVBoxLayout()
@@ -199,7 +202,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addLayout(sideLayout)
         for title in ('left', 'center', 'right'):
             windowSize = settings.value(
-                f'default/graphics/{title}/windowSize', type=int)
+                f'default/plotOptions/{title}/windowSize', type=int)
             widget = GraphicsWidget(
                 data=self.data,
                 windowSize=windowSize,
@@ -221,5 +224,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
             opts.aggregationModesChanged.connect(gfxs.updateAggregationModes)
             opts.sourceSelectionChanged.connect(gfxs.updateSourceSelection)
+            opts.windowSizeChanged.connect(gfxs.updateWindowSize)
             opts.xRangeChanged.connect(gfxs.updateXRange)
             gfxs.xRangeChanged.connect(opts.updateXRange)

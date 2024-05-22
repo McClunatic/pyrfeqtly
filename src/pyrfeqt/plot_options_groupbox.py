@@ -156,6 +156,7 @@ class SelectedSourcesGroupBox(QtWidgets.QWidget):
 class PlotOptionsGroupBox(QtWidgets.QGroupBox):
 
     xRangeChanged = QtCore.Signal(int, int)
+    windowSizeChanged = QtCore.Signal(int)
     aggregationModesChanged = QtCore.Signal(str, str)
     sourceSelectionChanged = QtCore.Signal(str, QtCore.Qt.CheckState)
 
@@ -168,6 +169,7 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         title: str,
         pos: str,
         xRange: Tuple[int, int],
+        windowSize: int,
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
@@ -179,6 +181,12 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.xAxisRange = SpinBoxPair(*xRange, parent=self)
         self.xAxisRange.valueChanged.connect(self.xRangeChanged)
         self.updateXRange.connect(self.xAxisRange.updateRange)
+
+        self.windowSize = QSpinBox()
+        self.windowSize.setKeyboardTracking(False)
+        self.windowSize.setMinimum(0)
+        self.windowSize.setValue(windowSize)
+        self.windowSize.valueChanged.connect(self.windowSizeChanged)
 
         self.aggregationModes = ComboBoxPair(
             signalOptions=['none', 'mean', 'sum', 'max'],
@@ -193,6 +201,12 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.removeSource.connect(self.dataSources.removeSource)
 
         layout.addRow('x-axis range', self.xAxisRange)
+        # For alignment with sublayouts for other rows
+        widget = QtWidgets.QWidget()
+        windowSizeLayout = QtWidgets.QHBoxLayout()
+        windowSizeLayout.addWidget(self.windowSize)
+        widget.setLayout(windowSizeLayout)
+        layout.addRow('time window size', widget)
         layout.addRow('aggregation modes', self.aggregationModes)
         layout.addRow('data sources', self.dataSources)
 
@@ -205,6 +219,12 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.xAxisRange.blockSignals(True)
         self.xAxisRange.updateRange(*[int(lim) for lim in xRange])
         self.xAxisRange.blockSignals(False)
+
+        windowSize = settings.value(
+            f'{group}/plotOptions/{self.pos}/windowSize', type=int)
+        self.windowSize.blockSignals(True)
+        self.windowSize.setValue(windowSize)
+        self.windowSize.blockSignals(False)
 
         aggregationModes = settings.value(
             f'{group}/plotOptions/{self.pos}/aggregationModes', type=list)
