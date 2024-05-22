@@ -40,9 +40,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create the data container object
         settings = QtCore.QSettings()
         self.data = DataContainer(
-            bin_width=settings.value('default/data/bin_width', type=float),
-            sample_size=settings.value('default/data/sample_size', type=int),
-            history_size=settings.value('default/data/history_size', type=int))
+            binWidth=settings.value('default/data/binWidth', type=float),
+            sampleSize=settings.value('default/data/sampleSize', type=int),
+            historySize=settings.value('default/data/historySize', type=int))
 
         self.fileMenu = self.menuBar().addMenu(self.tr('&File'))
         self.editMenu = self.menuBar().addMenu(self.tr('&Edit'))
@@ -93,6 +93,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for pos in ('left', 'center', 'right'):
             settings.beginGroup(pos)
             settings.setValue('xRange', [0, SAMPLE_SIZE])
+            settings.setValue('windowSize', WINDOW_SIZE)
             settings.setValue('aggregationModes', ['none', 'mean'])
             settings.beginWriteArray('sourceSelection')
             settings.endArray()
@@ -102,15 +103,9 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.setValue('paths', [])
         settings.endGroup()
         settings.beginGroup('data')
-        settings.setValue('bin_width', BIN_WIDTH)
-        settings.setValue('sample_size', SAMPLE_SIZE)
-        settings.setValue('history_size', HISTORY_SIZE)
-        settings.endGroup()
-        settings.beginGroup('graphics')
-        for title in ('left', 'center', 'right'):
-            settings.beginGroup(title)
-            settings.setValue('window_size', WINDOW_SIZE)
-            settings.endGroup()
+        settings.setValue('binWidth', BIN_WIDTH)
+        settings.setValue('sampleSize', SAMPLE_SIZE)
+        settings.setValue('historySize', HISTORY_SIZE)
         settings.endGroup()
         settings.endGroup()
 
@@ -203,11 +198,11 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(sideLayout)
         for title in ('left', 'center', 'right'):
-            window_size = settings.value(
-                f'default/graphics/{title}/window_size', type=int)
+            windowSize = settings.value(
+                f'default/graphics/{title}/windowSize', type=int)
             widget = GraphicsWidget(
                 data=self.data,
-                window_size=window_size,
+                windowSize=windowSize,
                 title=title,
                 parent=self)
             layout.addWidget(widget, stretch=1)

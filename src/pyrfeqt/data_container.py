@@ -17,16 +17,16 @@ class DataContainer(QtCore.QObject):
 
     def __init__(
         self,
-        bin_width: float,
-        history_size: int,
-        sample_size: int,
+        binWidth: float,
+        historySize: int,
+        sampleSize: int,
         parent: QtCore.QObject = None,
     ):
         super().__init__(parent=parent)
 
-        self.bin_width = bin_width
-        self.history_size = history_size
-        self.sample_size = sample_size
+        self.binWidth = binWidth
+        self.historySize = historySize
+        self.sampleSize = sampleSize
 
         #: List[str]
         self.paths = []
@@ -35,33 +35,33 @@ class DataContainer(QtCore.QObject):
         self.mtimes = np.empty((2, 0), dtype=float)
 
         #: set of float64 of rounded mtimes
-        self.set_mtimes = set()
+        self.mtimesSet = set()
 
         #: np.ndarray of float64
-        self.data = np.empty((0, 0, self.sample_size), dtype=float)
+        self.data = np.empty((0, 0, self.sampleSize), dtype=float)
 
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
-        bin_width = settings.value(f'{group}/data/bin_width', type=float)
-        history_size = settings.value(f'{group}/data/history_size', type=int)
-        sample_size = settings.value(f'{group}/data/sample_size', type=int)
+        binWidth = settings.value(f'{group}/data/binWidth', type=float)
+        historySize = settings.value(f'{group}/data/historySize', type=int)
+        sampleSize = settings.value(f'{group}/data/sampleSize', type=int)
 
-        if (self.bin_width != bin_width or self.sample_size != sample_size):
+        if (self.binWidth != binWidth or self.sampleSize != sampleSize):
             self.mtimes = np.empty((2, 0), dtype=float)
-            self.set_mtimes = set()
-            self.data = np.empty((0, 0, sample_size), dtype=float)
+            self.mtimesSet = set()
+            self.data = np.empty((0, 0, sampleSize), dtype=float)
 
-        self.bin_width = bin_width
-        self.history_size = history_size
-        self.sample_size = sample_size
+        self.binWidth = binWidth
+        self.historySize = historySize
+        self.sampleSize = sampleSize
 
-    def remove_nan_samples(self):
+    def removeNanSamples(self):
         # Find tix mask for deletion
         delete_mask = np.all(np.isnan(self.data), axis=(0, 2))
         delete_idxs = delete_mask.nonzero()[0]
 
         # Remove those mtimes from the set
-        self.set_mtimes.difference_update(self.mtimes[0, delete_mask])
+        self.mtimesSet.difference_update(self.mtimes[0, delete_mask])
 
         # Delete the mtimes and data
         self.mtimes = np.delete(self.mtimes, delete_idxs, axis=1)
@@ -74,7 +74,7 @@ class DataContainer(QtCore.QObject):
         pix = self.paths.index(path)
         self.paths.pop(pix)
         self.data = np.delete(self.data, pix, axis=0)
-        self.remove_nan_samples()
+        self.removeNanSamples()
 
     def update(self, path: str):
         # Get path index
@@ -89,12 +89,12 @@ class DataContainer(QtCore.QObject):
         # Loop over data and add new entries
         entries = sorted(
             pathlib.Path(path).glob('*.npy'), key=lambda e: e.stat().st_mtime)
-        for entry in entries[-self.history_size:]:
+        for entry in entries[-self.historySize:]:
             mtime = entry.stat().st_mtime
-            mtime_bin = np.floor(np.true_divide(mtime, self.bin_width))
+            mtime_bin = np.floor(np.true_divide(mtime, self.binWidth))
 
             # Case 1: mtime in there, data is already written the data for pix
-            if mtime_bin in self.set_mtimes:
+            if mtime_bin in self.mtimesSet:
                 tmask = mtime_bin == self.mtimes[0]
             #   1a: already written the data for pix
                 if np.any(~np.isnan(self.data[pix, tmask])):
@@ -108,16 +108,16 @@ class DataContainer(QtCore.QObject):
                 continue
 
             # Case 3: mtime in there, data not already written; use tmask later
-            if mtime_bin in self.set_mtimes:
+            if mtime_bin in self.mtimesSet:
                 pass
-            # Case 4: mtime is not in there and size == history_size
-            elif self.mtimes.shape[1] == self.history_size:
+            # Case 4: mtime is not in there and size == historySize
+            elif self.mtimes.shape[1] == self.historySize:
                 tmask = self.mtimes.shape[1] - 1
-                self.set_mtimes.remove(self.mtimes[0, 0])
+                self.mtimesSet.remove(self.mtimes[0, 0])
                 self.mtimes = np.roll(self.mtimes, -1, axis=1)
                 self.mtimes[:, -1] = [mtime_bin, mtime]
                 self.data = np.roll(self.data, -1, axis=1)
-            # Case 5: mtime is not in there and size < history_size
+            # Case 5: mtime is not in there and size < historySize
             else:
                 tmask = self.mtimes.shape[1]
                 self.mtimes = np.concatenate(
@@ -128,7 +128,7 @@ class DataContainer(QtCore.QObject):
                     ((0, 0), (0, 1), (0, 0)),
                     constant_values=np.nan)
 
-            self.set_mtimes.add(mtime_bin)
+            self.mtimesSet.add(mtime_bin)
             self.data[pix, tmask, :] = new_data
 
     def latest(self, selection: List[str], mode: str, window: int):
@@ -144,7 +144,7 @@ class DataContainer(QtCore.QObject):
         data = select_data[:, argsort]
         mtimes = self.mtimes[:, argsort]
 
-        mtime_target = mtimes[1, -1] - self.bin_width * (window - 1)
+        mtime_target = mtimes[1, -1] - self.binWidth * (window - 1)
         window_idx = np.argmin(np.abs(mtimes[1] - mtime_target))
 
         window_data = data[:, window_idx:]

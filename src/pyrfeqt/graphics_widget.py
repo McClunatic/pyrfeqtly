@@ -25,7 +25,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
     def __init__(
         self,
         data: DataContainer,
-        window_size: int,
+        windowSize: int,
         title=None,
         parent=None,
     ):
@@ -37,7 +37,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.signalMode = 'none'
         self.spectrMode = 'mean'
         self.sourceSelection = {}
-        self.window_size = window_size
+        self.windowSize = windowSize
 
         self.signalPlot = self.addPlot()
         self.signalPlot.addLegend(offset=(-1, -1))
@@ -60,8 +60,8 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
 
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
-        self.window_size = settings.value(
-            f'{group}/graphics/{self.title}/window_size', type=int)
+        self.windowSize = settings.value(
+            f'{group}/graphics/{self.title}/windowSize', type=int)
 
         xRange = settings.value(
             f'{group}/plotOptions/{self.title}/xRange', type=list)
@@ -175,5 +175,5 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.updateCurves(curveData, selection)
 
         imageData = self.data.latest(
-            selection=selection, mode=self.spectrMode, window=self.window_size)
+            selection=selection, mode=self.spectrMode, window=self.windowSize)
         self.updateImages(imageData)
