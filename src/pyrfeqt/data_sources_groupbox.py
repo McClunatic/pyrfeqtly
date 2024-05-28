@@ -144,3 +144,16 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             item = self.listModel.itemFromIndex(index)
             paths.append(item.text())
         settings.setValue(f'{group}/dataSources/paths', paths)
+
+    def setReadOnly(self, ro: bool):
+        if ro:
+            self.listView.setSelectionMode(
+                QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+            self.newButton.setEnabled(False)
+            self.removeButton.setEnabled(False)
+        else:
+            self.listView.setSelectionMode(
+                QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
+            self.newButton.setEnabled(True)
+            self.removeButton.setEnabled(
+                self.listView.selectionModel().hasSelection())

@@ -70,6 +70,10 @@ class SpinBoxPair(QtWidgets.QWidget):
     def getRange(self):
         return [self.lbound.value(), self.rbound.value()]
 
+    def setReadOnly(self, ro: bool):
+        self.lbound.setReadOnly(ro)
+        self.rbound.setReadOnly(ro)
+
 
 class ComboBoxPair(QtWidgets.QWidget):
 
@@ -110,6 +114,10 @@ class ComboBoxPair(QtWidgets.QWidget):
 
     def getCurrentText(self):
         return [self.signal.currentText(), self.spectr.currentText()]
+
+    def setEditable(self, editable: bool):
+        self.signal.setEditable(editable)
+        self.spectr.setEditable(editable)
 
 
 class SelectedSourcesGroupBox(QtWidgets.QWidget):
@@ -157,6 +165,13 @@ class SelectedSourcesGroupBox(QtWidgets.QWidget):
     @QtCore.Slot(QtGui.QStandardItem)
     def onItemChanged(self, item):
         self.sourceChanged.emit(item.text(), item.checkState())
+
+    def setReadOnly(self, ro: bool):
+        self.listView.setAttribute(
+            QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents, ro)
+        focusPolicy = (QtCore.Qt.FocusPolicy.NoFocus if ro
+                       else QtCore.Qt.FocusPolicy.StrongFocus)
+        self.listView.setFocusPolicy(focusPolicy)
 
 
 class PlotOptionsGroupBox(QtWidgets.QGroupBox):
@@ -298,3 +313,9 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
             settings.setValue('checked', checked)
         settings.endArray()
         settings.endGroup()
+
+    def setReadOnly(self, ro: bool):
+        self.xAxisRange.setReadOnly(ro)
+        self.windowSize.setReadOnly(ro)
+        self.aggregationModes.setEditable(not ro)
+        self.dataSources.setReadOnly(ro)

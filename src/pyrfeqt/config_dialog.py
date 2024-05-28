@@ -56,6 +56,11 @@ class DataOptionsGroupBox(QtWidgets.QGroupBox):
         settings.setValue('sampleSize', self.sampleSizeBox.value())
         settings.endGroup()
 
+    def setReadOnly(self, ro: bool):
+        self.binWidthBox.setReadOnly(ro)
+        self.sampleSizeBox.setReadOnly(ro)
+        self.historySizeBox.setReadOnly(ro)
+
 
 class ConfigDialog(QtWidgets.QDialog):
 
