@@ -64,6 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._buildLayout()
         self._connectSignalsAndSlots()
+        self.applySettings()
 
     def plotOptionsWidget(self, index: int):
         return self.plotOptionsBox.widget(index)
@@ -130,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self)
         self.newAct.setShortcut(QtGui.QKeySequence.StandardKey.New)
         self.newAct.setStatusTip(self.tr('Start new configuration'))
-        # TODO: connect self.newAct to function
+        self.newAct.triggered.connect(self.newConfig)
 
         self.openAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentOpen),
@@ -146,7 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self)
         self.saveAct.setShortcut(QtGui.QKeySequence.StandardKey.Save)
         self.saveAct.setStatusTip(self.tr('Save current configuration'))
-        # TODO: connect self.saveAct to function
+        self.saveAct.triggered.connect(self.saveConfig)
 
         self.fileMenu.addAction(self.newAct)
         self.fileMenu.addAction(self.openAct)
@@ -161,8 +162,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prefAct = QtGui.QAction(
             self.tr('&Preferences...'), self)
         self.prefAct.setShortcut(QtGui.QKeySequence.StandardKey.Preferences)
-        self.openAct.setStatusTip(self.tr('Edit preferences'))
-        # TODO: connect self.prefAct to function
+        self.prefAct.setStatusTip(self.tr('Edit preferences'))
+        self.prefAct.triggered.connect(self.showPreferences)
 
         self.editMenu.addAction(self.editAct)
         self.editMenu.addSeparator()
@@ -174,9 +175,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr('&About'),
             self)
         self.aboutAct.setStatusTip(self.tr('Show about'))
-        # TODO: connect self.aboutAct to function
+        self.aboutAct.triggered.connect(self.showAbout)
+
+        self.aboutQtAct = QtGui.QAction(
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.HelpAbout),
+            self.tr('About &Qt'),
+            self)
+        self.aboutQtAct.setStatusTip(self.tr('Show about Qt'))
+        self.aboutQtAct.triggered.connect(self.showAboutQt)
 
         self.helpMenu.addAction(self.aboutAct)
+        self.helpMenu.addAction(self.aboutQtAct)
 
     def _buildLayout(self):
         settings = QtCore.QSettings()
@@ -246,7 +255,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Write settings to the dummy group
         self.writeSettings(group=dummyGroup)
         # Apply settings to configuration dialog
-        dialog = ConfigDialog('Edit configuration', dummyGroup)
+        dialog = ConfigDialog(
+            'Edit configuration',
+            group=dummyGroup,
+            mode='edit')
         dialog.applySettings()
         # If accepted: serialize and deserialize settings to apply
         if dialog.exec():
@@ -255,9 +267,56 @@ class MainWindow(QtWidgets.QMainWindow):
         # Always remove the dummy group
         settings.remove(dummyGroup)
 
+    def newConfig(self):
+        ans = QtWidgets.QMessageBox.question(
+            self,
+            'Confirm New',
+            'This will return all options to default settings. Continue?')
+        if ans == QtWidgets.QMessageBox.StandardButton.Yes:
+            self.applySettings(group='default')
+
     def loadConfig(self):
-        dialog = ConfigDialog('Edit configuration', 'default', selection=True)
+        dialog = ConfigDialog(
+            'Edit configuration',
+            group='default',
+            mode='load')
         dialog.applySettings()
         if dialog.exec():
             group = dialog.currentText()
             self.applySettings(group=group)
+
+    def saveConfig(self):
+        settings = QtCore.QSettings()
+        # Create a dummy group
+        dummyGroup = uuid.uuid4().hex
+        while dummyGroup in settings.childGroups():
+            dummyGroup = uuid.uuid4().hex
+        # Write settings to the dummy group
+        self.writeSettings(group=dummyGroup)
+        # Apply settings to configuration dialog
+        dialog = ConfigDialog(
+            'Save configuration',
+            group=dummyGroup,
+            mode='save')
+        dialog.applySettings()
+        # If accepted: serialize and deserialize settings to apply
+        if dialog.exec():
+            group = dialog.currentText()
+            self.writeSettings(group=group)
+        # Always remove the dummy group
+        settings.remove(dummyGroup)
+
+    def showPreferences(self):
+        QtWidgets.QMessageBox.information(
+            self,
+            'Preferences',
+            'There are currently no preferences options!')
+
+    def showAbout(self):
+        QtWidgets.QMessageBox.about(
+            self,
+            'About',
+            'Pyrfeqt is for rendering file-based data with Qt.')
+
+    def showAboutQt(self):
+        QtWidgets.QMessageBox.aboutQt(self, 'About Qt')

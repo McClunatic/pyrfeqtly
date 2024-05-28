@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024-present Brian McClune <bpmcclune@gmail.com>
 #
 # SPDX-License-Identifier: MIT
-"""Defines the configurtion dialog class."""
+"""Defines the configuration dialog class."""
 
 from typing import Optional
 
@@ -68,7 +68,7 @@ class ConfigDialog(QtWidgets.QDialog):
         self,
         title: str,
         group: str,
-        selection: bool = False,
+        mode: str,
         parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent=parent)
@@ -77,6 +77,7 @@ class ConfigDialog(QtWidgets.QDialog):
         formLayout = QtWidgets.QGridLayout()
 
         self.group = group
+        self.mode = mode
         self.plotOptions = []
 
         # Build the first row
@@ -107,10 +108,10 @@ class ConfigDialog(QtWidgets.QDialog):
         # Build the button box
         buttonLayout = QtWidgets.QHBoxLayout()
         self.selectComboBox = None
-        if selection:
+        if mode in ('load', 'save'):
             label = QtWidgets.QLabel('Current configuration:')
             self.selectComboBox = QtWidgets.QComboBox()
-            self.selectComboBox.setEditable(False)
+            self.selectComboBox.setEditable(mode == 'save')
             self.selectComboBox.addItems(settings.childGroups())
             self.selectComboBox.setCurrentText('default')
             label.setBuddy(self.selectComboBox)
@@ -123,12 +124,19 @@ class ConfigDialog(QtWidgets.QDialog):
         # Connect signals and slots
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        if self.selectComboBox:
+        if self.selectComboBox and mode == 'load':
             self.selectComboBox.currentTextChanged.connect(
                 self.onCurrentTextChanged)
         for opts in self.plotOptions:
             self.dataSourcesBox.sourceInserted.connect(opts.insertSource)
             self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
+
+        # Apply editability settings
+        if mode != 'edit':
+            self.dataOptionsBox.setReadOnly(True)
+            self.dataSourcesBox.setReadOnly(True)
+            for opts in self.plotOptions:
+                opts.setReadOnly(True)
 
         layout.addLayout(formLayout)
         layout.addLayout(buttonLayout)
@@ -158,3 +166,23 @@ class ConfigDialog(QtWidgets.QDialog):
         if self.selectComboBox:
             return self.selectComboBox.currentText()
         return self.group
+
+    def accept(self):
+        if not (self.selectComboBox and self.mode == 'save'):
+            super().accept()
+
+        settings = QtCore.QSettings()
+        name = self.selectComboBox.currentText()
+        if name not in settings.childGroups():
+            super().accept()
+
+        text = f'Configuration {name!r} already exists! Overwrite it?'
+        ans = QtWidgets.QMessageBox.question(self, 'Confirm Save', text)
+        if ans == QtWidgets.QMessageBox.StandardButton.Yes:
+            super().accept()
+
+    def reject(self):
+        text = 'Are you sure you want to cancel?'
+        ans = QtWidgets.QMessageBox.question(self, 'Confirm Cancel', text)
+        if ans == QtWidgets.QMessageBox.StandardButton.Yes:
+            super().reject()
