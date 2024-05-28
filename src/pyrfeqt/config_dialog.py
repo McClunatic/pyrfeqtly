@@ -51,12 +51,12 @@ class ConfigDialog(QtWidgets.QDialog):
         self.setWindowTitle(self.tr(title))
         layout = QtWidgets.QGridLayout()
 
-        settings = QtCore.QSettings()
-        settings.beginGroup(group)
-
+        self.group = group
         self.plotOptions = []
 
         # Build the first row
+        settings = QtCore.QSettings()
+        settings.beginGroup(group)
         for idx, pos in enumerate(('left', 'center', 'right')):
             xRange = settings.value(
                 f'plotOptions/{pos}/xRange', type=list)
@@ -70,11 +70,18 @@ class ConfigDialog(QtWidgets.QDialog):
             layout.addWidget(opts, 0, idx)
             self.plotOptions.append(opts)
 
+        settings.endGroup()
+
         # Build the second row
         self.dataOptionsBox = DataOptionsGroupBox('Data options')
         layout.addWidget(self.dataOptionsBox, 1, 0)
         self.dataSourcesBox = DataSourcesGroupBox(
             'Data sources', horizontal=True)
         layout.addWidget(self.dataSourcesBox, 1, 1, 1, 2)
+
+        # Connect signals and slots
+        for opts in self.plotOptions:
+            self.dataSourcesBox.sourceInserted.connect(opts.insertSource)
+            self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
 
         self.setLayout(layout)
