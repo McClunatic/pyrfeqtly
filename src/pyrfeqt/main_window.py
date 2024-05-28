@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.aboutAct = None
 
         self.plotOptionsBox = QtWidgets.QStackedWidget()
-        self.dataSourcesBox = DataSourcesGroupBox('Data sources', self)
+        self.dataSourcesBox = DataSourcesGroupBox('Data sources')
 
         self._createFileActions()
         self._createEditActions()

@@ -18,6 +18,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
     def __init__(
         self,
         title: str,
+        horizontal: bool = False,
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
@@ -57,9 +58,12 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         self.treeView.setSizePolicy(policy)
         self.treeView.hide()
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.listView)
-        layout.addWidget(self.buttonWidget)
+        layout = (
+            QtWidgets.QHBoxLayout() if horizontal else QtWidgets.QVBoxLayout())
+        listLayout = QtWidgets.QVBoxLayout()
+        listLayout.addWidget(self.listView)
+        listLayout.addWidget(self.buttonWidget)
+        layout.addLayout(listLayout)
         layout.addWidget(self.treeView, stretch=1)
         self.setLayout(layout)
 
