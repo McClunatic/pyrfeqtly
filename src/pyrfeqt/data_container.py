@@ -42,18 +42,27 @@ class DataContainer(QtCore.QObject):
 
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
+        paths = settings.value(f'{group}/dataSources/paths', type=list)
         binWidth = settings.value(f'{group}/data/binWidth', type=float)
         historySize = settings.value(f'{group}/data/historySize', type=int)
         sampleSize = settings.value(f'{group}/data/sampleSize', type=int)
 
-        if (self.binWidth != binWidth or self.sampleSize != sampleSize):
-            self.mtimes = np.empty((2, 0), dtype=float)
-            self.mtimesSet = set()
-            self.data = np.empty((0, 0, sampleSize), dtype=float)
+        timeToReset = (
+            self.paths != paths or
+            self.binWidth != binWidth or
+            self.sampleSize != sampleSize)
 
         self.binWidth = binWidth
         self.historySize = historySize
         self.sampleSize = sampleSize
+
+        if timeToReset:
+            self.paths = []
+            self.mtimes = np.empty((2, 0), dtype=float)
+            self.mtimesSet = set()
+            self.data = np.empty((0, 0, sampleSize), dtype=float)
+            for path in paths:
+                self.update(path)
 
     def writeSettings(self, group: str):
         settings = QtCore.QSettings()
