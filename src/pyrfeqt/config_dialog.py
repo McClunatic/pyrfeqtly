@@ -38,6 +38,24 @@ class DataOptionsGroupBox(QtWidgets.QGroupBox):
 
         self.setLayout(layout)
 
+    def applySettings(self, group: str = 'default'):
+        settings = QtCore.QSettings()
+        binWidth = settings.value(f'{group}/data/binWidth', type=float)
+        sampleSize = settings.value(f'{group}/data/sampleSize', type=int)
+        historySize = settings.value(f'{group}/data/historySize', type=int)
+
+        self.binWidthBox.setValue(binWidth)
+        self.sampleSizeBox.setValue(sampleSize)
+        self.historySizeBox.setValue(historySize)
+
+    def writeSettings(self, group: str):
+        settings = QtCore.QSettings()
+        settings.beginGroup(f'{group}/data')
+        settings.setValue('binWidth', self.binWidthBox.value())
+        settings.setValue('historySize', self.historySizeBox.value())
+        settings.setValue('sampleSize', self.sampleSizeBox.value())
+        settings.endGroup()
+
 
 class ConfigDialog(QtWidgets.QDialog):
 
@@ -85,3 +103,18 @@ class ConfigDialog(QtWidgets.QDialog):
             self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
 
         self.setLayout(layout)
+
+    def applySettings(self, group: Optional[str] = None):
+        group = group if group is not None else self.group
+        for opts in self.plotOptions:
+            opts.applySettings(group)
+        self.dataOptionsBox.applySettings(group)
+        self.dataSourcesBox.applySettings(group)
+
+    def writeSettings(self, group: Optional[str] = None):
+        group = group if group is not None else self.group
+        group = group if group is not None else self.group
+        for opts in self.plotOptions:
+            opts.writeSettings(group)
+        self.dataOptionsBox.writeSettings(group)
+        self.dataSourcesBox.writeSettings(group)
