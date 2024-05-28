@@ -143,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.saveAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentSave),
-            self.tr('&Save'),
+            self.tr('&Save...'),
             self)
         self.saveAct.setShortcut(QtGui.QKeySequence.StandardKey.Save)
         self.saveAct.setStatusTip(self.tr('Save current configuration'))
@@ -155,9 +155,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _createEditActions(self):
         self.editAct = QtGui.QAction(
-            self.tr('&Edit'), self)
+            self.tr('&Edit...'), self)
         self.editAct.setStatusTip(self.tr('Edit current configuration...'))
         self.editAct.triggered.connect(self.editConfig)
+
+        self.delAct = QtGui.QAction(
+            QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.EditDelete),
+            self.tr('&Delete saved...'),
+            self)
+        self.delAct.setStatusTip(self.tr('Delete a saved configuration...'))
+        self.delAct.triggered.connect(self.deleteConfig)
 
         self.prefAct = QtGui.QAction(
             self.tr('&Preferences...'), self)
@@ -166,6 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prefAct.triggered.connect(self.showPreferences)
 
         self.editMenu.addAction(self.editAct)
+        self.editMenu.addAction(self.delAct)
         self.editMenu.addSeparator()
         self.editMenu.addAction(self.prefAct)
 
@@ -284,6 +292,17 @@ class MainWindow(QtWidgets.QMainWindow):
         if dialog.exec():
             group = dialog.currentText()
             self.applySettings(group=group)
+
+    def deleteConfig(self):
+        settings = QtCore.QSettings()
+        dialog = ConfigDialog(
+            'Delete configuration',
+            group='default',
+            mode='delete')
+        dialog.applySettings()
+        if dialog.exec():
+            group = dialog.currentText()
+            settings.remove(group)
 
     def saveConfig(self):
         settings = QtCore.QSettings()

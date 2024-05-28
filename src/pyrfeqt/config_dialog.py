@@ -108,7 +108,7 @@ class ConfigDialog(QtWidgets.QDialog):
         # Build the button box
         buttonLayout = QtWidgets.QHBoxLayout()
         self.selectComboBox = None
-        if mode in ('load', 'save'):
+        if mode in ('load', 'save', 'delete'):
             label = QtWidgets.QLabel('Current configuration:')
             self.selectComboBox = QtWidgets.QComboBox()
             self.selectComboBox.setEditable(mode == 'save')
@@ -124,7 +124,7 @@ class ConfigDialog(QtWidgets.QDialog):
         # Connect signals and slots
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
-        if self.selectComboBox and mode == 'load':
+        if self.selectComboBox and mode in ('load', 'delete'):
             self.selectComboBox.currentTextChanged.connect(
                 self.onCurrentTextChanged)
         for opts in self.plotOptions:
@@ -168,10 +168,15 @@ class ConfigDialog(QtWidgets.QDialog):
         return self.group
 
     def accept(self):
-        if not (self.selectComboBox and self.mode == 'save'):
+        if self.mode in ('edit', 'load'):
             super().accept()
             return
+        elif self.mode == 'save':
+            self.acceptSave()
+        else:
+            self.acceptDelete()
 
+    def acceptSave(self):
         settings = QtCore.QSettings()
         name = self.selectComboBox.currentText()
         if name in settings.childGroups():
@@ -180,6 +185,13 @@ class ConfigDialog(QtWidgets.QDialog):
             if ans == QtWidgets.QMessageBox.StandardButton.Yes:
                 super().accept()
         else:
+            super().accept()
+
+    def acceptDelete(self):
+        name = self.selectComboBox.currentText()
+        text = f'Configuration {name!r} will be deleted! Continue?'
+        ans = QtWidgets.QMessageBox.question(self, 'Confirm Delete', text)
+        if ans == QtWidgets.QMessageBox.StandardButton.Yes:
             super().accept()
 
     def reject(self):
