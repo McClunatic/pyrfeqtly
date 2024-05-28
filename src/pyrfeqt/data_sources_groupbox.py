@@ -94,16 +94,16 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             QtWidgets.QFileDialog.Option.ShowDirsOnly)
         if source != '' and not self.listModel.findItems(source):
             item = QtGui.QStandardItem(source)
-            self.listModel.appendRow(item)
             self.watcher.addPath(source)
+            self.listModel.appendRow(item)
 
     @QtCore.Slot()
     def removeSources(self):
         indexes = self.listView.selectionModel().selectedIndexes()
         for index in indexes[::-1]:
             item = self.listModel.itemFromIndex(index)
-            self.listModel.removeRow(index.row())
             self.watcher.removePath(item.text())
+            self.listModel.removeRow(index.row())
 
     @QtCore.Slot(QtCore.QModelIndex, int, int)
     def onRowsInserted(self, index, first, last):
@@ -126,14 +126,14 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             index = self.listModel.index(row, 0)
             item = self.listModel.itemFromIndex(index)
             if item.text() not in paths:
-                self.listModel.removeRow(row)
                 self.watcher.removePath(item.text())
+                self.listModel.removeRow(row)
         # Loop over paths: if not in sources, add
         for source in paths:
             if not self.listModel.findItems(source):
                 item = QtGui.QStandardItem(source)
-                self.listModel.appendRow(item)
                 self.watcher.addPath(source)
+                self.listModel.appendRow(item)
         self.blockSignals(False)
 
     def writeSettings(self, group: str):
