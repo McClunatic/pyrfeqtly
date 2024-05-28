@@ -63,6 +63,7 @@ class ConfigDialog(QtWidgets.QDialog):
         self,
         title: str,
         group: str,
+        selection: bool = False,
         parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent=parent)
@@ -99,18 +100,33 @@ class ConfigDialog(QtWidgets.QDialog):
         formLayout.addWidget(self.dataSourcesBox, 1, 1, 1, 2)
 
         # Build the button box
+        buttonLayout = QtWidgets.QHBoxLayout()
+        self.selectComboBox = None
+        if selection:
+            label = QtWidgets.QLabel('Current configuration:')
+            self.selectComboBox = QtWidgets.QComboBox()
+            self.selectComboBox.setEditable(False)
+            self.selectComboBox.addItems(settings.childGroups())
+            self.selectComboBox.setCurrentText('default')
+            label.setBuddy(self.selectComboBox)
+            buttonLayout.addWidget(label)
+            buttonLayout.addWidget(self.selectComboBox)
         self.buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttonLayout.addWidget(self.buttonBox, stretch=1)
 
         # Connect signals and slots
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
+        if self.selectComboBox:
+            self.selectComboBox.currentTextChanged.connect(
+                self.onCurrentTextChanged)
         for opts in self.plotOptions:
             self.dataSourcesBox.sourceInserted.connect(opts.insertSource)
             self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
 
         layout.addLayout(formLayout)
-        layout.addWidget(self.buttonBox)
+        layout.addLayout(buttonLayout)
         self.setLayout(layout)
 
     def applySettings(self, group: Optional[str] = None):
@@ -127,3 +143,13 @@ class ConfigDialog(QtWidgets.QDialog):
             opts.writeSettings(group)
         self.dataOptionsBox.writeSettings(group)
         self.dataSourcesBox.writeSettings(group)
+
+    @QtCore.Slot(str)
+    def onCurrentTextChanged(self, text: str):
+        self.group = text
+        self.applySettings(text)
+
+    def currentText(self):
+        if self.selectComboBox:
+            return self.selectComboBox.currentText()
+        return self.group

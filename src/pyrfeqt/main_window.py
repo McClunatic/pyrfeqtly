@@ -129,23 +129,23 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr('&New'),
             self)
         self.newAct.setShortcut(QtGui.QKeySequence.StandardKey.New)
-        self.newAct.setStatusTip(self.tr('Create a new file'))
+        self.newAct.setStatusTip(self.tr('Start new configuration'))
         # TODO: connect self.newAct to function
 
         self.openAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentOpen),
-            self.tr('&Open...'),
+            self.tr('&Load...'),
             self)
         self.openAct.setShortcut(QtGui.QKeySequence.StandardKey.Open)
-        self.openAct.setStatusTip(self.tr('Open an existing file'))
-        # TODO: connect self.openAct to function
+        self.openAct.setStatusTip(self.tr('Load an existing configuration'))
+        self.openAct.triggered.connect(self.loadConfig)
 
         self.saveAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentSave),
             self.tr('&Save'),
             self)
         self.saveAct.setShortcut(QtGui.QKeySequence.StandardKey.Save)
-        self.saveAct.setStatusTip(self.tr('Save the file to disk'))
+        self.saveAct.setStatusTip(self.tr('Save current configuration'))
         # TODO: connect self.saveAct to function
 
         self.fileMenu.addAction(self.newAct)
@@ -155,8 +155,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _createEditActions(self):
         self.editAct = QtGui.QAction(
             self.tr('&Edit'), self)
-        self.editAct.setStatusTip(self.tr('Edit current configuration'))
-        # TODO: connect self.editAct to function
+        self.editAct.setStatusTip(self.tr('Edit current configuration...'))
         self.editAct.triggered.connect(self.editConfig)
 
         self.prefAct = QtGui.QAction(
@@ -255,3 +254,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.applySettings(group=dummyGroup)
         # Always remove the dummy group
         settings.remove(dummyGroup)
+
+    def loadConfig(self):
+        dialog = ConfigDialog('Edit configuration', 'default', selection=True)
+        dialog.applySettings()
+        if dialog.exec():
+            group = dialog.currentText()
+            self.applySettings(group=group)
