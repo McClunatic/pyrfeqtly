@@ -71,8 +71,9 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         aggregationModes = settings.value(
             f'{group}/plotOptions/{self.title}/aggregationModes', type=list)
         self.updateXRange(*[int(lim) for lim in xRange])
-        self.updateWindowSize(windowSize)
-        self.updateAggregationModes(*aggregationModes)
+        self.windowSize = windowSize
+        self.signalMode = aggregationModes[0]
+        self.spectrMode = aggregationModes[1]
 
         self.sourceSelection.clear()
         settings.beginGroup(f'{group}/plotOptions/{self.title}')
@@ -84,6 +85,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
             self.sourceSelection[path] = checked
         settings.endArray()
         settings.endGroup()
+        self.updatePlots()
 
     @QtCore.Slot(object, object)
     def onXRangeChanged(
@@ -157,7 +159,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
                     pixData.flatten(), pen=color, name=name)
                 self.signalPlot.addItem(curve)
         # Remove curve from viewbox for any extra curves
-        for pix in range(numSources, numCurves):
+        for pix in range(numCurves - 1, numSources - 1, -1):
             self.signalPlot.removeItem(self.signalPlot.curves[pix])
 
     def updateImages(self, imageData):
