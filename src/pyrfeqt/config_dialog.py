@@ -67,7 +67,8 @@ class ConfigDialog(QtWidgets.QDialog):
     ):
         super().__init__(parent=parent)
         self.setWindowTitle(self.tr(title))
-        layout = QtWidgets.QGridLayout()
+        layout = QtWidgets.QVBoxLayout()
+        formLayout = QtWidgets.QGridLayout()
 
         self.group = group
         self.plotOptions = []
@@ -85,23 +86,31 @@ class ConfigDialog(QtWidgets.QDialog):
                 pos=pos,
                 xRange=[int(lim) for lim in xRange],
                 windowSize=windowSize)
-            layout.addWidget(opts, 0, idx)
+            formLayout.addWidget(opts, 0, idx)
             self.plotOptions.append(opts)
 
         settings.endGroup()
 
         # Build the second row
         self.dataOptionsBox = DataOptionsGroupBox('Data options')
-        layout.addWidget(self.dataOptionsBox, 1, 0)
+        formLayout.addWidget(self.dataOptionsBox, 1, 0)
         self.dataSourcesBox = DataSourcesGroupBox(
             'Data sources', horizontal=True)
-        layout.addWidget(self.dataSourcesBox, 1, 1, 1, 2)
+        formLayout.addWidget(self.dataSourcesBox, 1, 1, 1, 2)
+
+        # Build the button box
+        self.buttonBox = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
 
         # Connect signals and slots
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
         for opts in self.plotOptions:
             self.dataSourcesBox.sourceInserted.connect(opts.insertSource)
             self.dataSourcesBox.sourceRemoved.connect(opts.removeSource)
 
+        layout.addLayout(formLayout)
+        layout.addWidget(self.buttonBox)
         self.setLayout(layout)
 
     def applySettings(self, group: Optional[str] = None):
