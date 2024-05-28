@@ -18,7 +18,7 @@ class DataOptionsGroupBox(QtWidgets.QGroupBox):
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> None:
         """Constructor."""
-        super(PlotOptionsGroupBox, self).__init__(title=title, parent=parent)
+        super(DataOptionsGroupBox, self).__init__(title=title, parent=parent)
 
         layout = QtWidgets.QFormLayout()
 

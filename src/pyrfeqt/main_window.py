@@ -9,6 +9,7 @@ from .data_container import DataContainer
 from .data_sources_groupbox import DataSourcesGroupBox
 from .plot_options_groupbox import PlotOptionsGroupBox
 from .graphics_widget import GraphicsWidget
+from .config_dialog import ConfigDialog
 
 # float: default bin width used to bin samples together in time
 BIN_WIDTH = 1e0
@@ -130,6 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.newAct.setShortcut(QtGui.QKeySequence.StandardKey.New)
         self.newAct.setStatusTip(self.tr('Create a new file'))
         # TODO: connect self.newAct to function
+        self.newAct.triggered.connect(self.createNewConfig)
 
         self.openAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentOpen),
@@ -235,3 +237,8 @@ class MainWindow(QtWidgets.QMainWindow):
             opts.windowSizeChanged.connect(gfxs.updateWindowSize)
             opts.xRangeChanged.connect(gfxs.updateXRange)
             gfxs.xRangeChanged.connect(opts.updateXRange)
+
+    def createNewConfig(self):
+        dialog = ConfigDialog('New configuration', 'default')
+        result = dialog.exec()
+        print(result)
