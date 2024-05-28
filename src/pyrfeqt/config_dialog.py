@@ -170,15 +170,16 @@ class ConfigDialog(QtWidgets.QDialog):
     def accept(self):
         if not (self.selectComboBox and self.mode == 'save'):
             super().accept()
+            return
 
         settings = QtCore.QSettings()
         name = self.selectComboBox.currentText()
-        if name not in settings.childGroups():
-            super().accept()
-
-        text = f'Configuration {name!r} already exists! Overwrite it?'
-        ans = QtWidgets.QMessageBox.question(self, 'Confirm Save', text)
-        if ans == QtWidgets.QMessageBox.StandardButton.Yes:
+        if name in settings.childGroups():
+            text = f'Configuration {name!r} already exists! Overwrite it?'
+            ans = QtWidgets.QMessageBox.question(self, 'Confirm Save', text)
+            if ans == QtWidgets.QMessageBox.StandardButton.Yes:
+                super().accept()
+        else:
             super().accept()
 
     def reject(self):
