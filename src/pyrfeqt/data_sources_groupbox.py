@@ -130,3 +130,11 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
                 self.listModel.appendRow(item)
                 self.watcher.addPath(source)
         self.blockSignals(False)
+
+    def writeSettings(self, group: str):
+        settings = QtCore.QSettings()
+        paths = []
+        for row in range(self.listModel.rowCount()):
+            item = self.listModel.index(row, 0)
+            paths.append(item.text())
+        settings.setValue(f'{group}/dataSources/paths', paths)

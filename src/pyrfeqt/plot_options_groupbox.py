@@ -67,6 +67,9 @@ class SpinBoxPair(QtWidgets.QWidget):
         self.rbound.setValue(rbound)
         self.blockSignals(False)
 
+    def getRange(self):
+        return self.lbound.value(), self.rbound.value()
+
 
 class ComboBoxPair(QtWidgets.QWidget):
 
@@ -104,6 +107,9 @@ class ComboBoxPair(QtWidgets.QWidget):
     def updateCurrentText(self, signal: str, spectr: str):
         self.signal.setCurrentText(signal)
         self.spectr.setCurrentText(spectr)
+
+    def getCurrentText(self):
+        return self.signal.currentText(), self.spectr.currentText()
 
 
 class SelectedSourcesGroupBox(QtWidgets.QWidget):
@@ -232,19 +238,17 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.aggregationModes.updateCurrentText(*aggregationModes)
         self.aggregationModes.blockSignals(False)
 
-        size = settings.beginReadArray(
-            f'{group}/plotOptions/{self.pos}/sourceSelection')
+        settings.beginGroup(f'{group}/plotOptions/{self.pos}')
+        size = settings.beginReadArray('sourceSelection')
         paths = []
         sourceSelection = []
         for idx in range(size):
             settings.setArrayIndex(idx)
-            paths.append(
-                settings.value(f'{group}/plotOptions/{self.pos}/path'))
-            sourceSelection.append((
-                settings.value(f'{group}/plotOptions/{self.pos}/path'),
-                settings.value(
-                    f'{group}/plotOptions/{self.pos}/checked', type=bool)))
+            paths.append(settings.value('path'))
+            sourceSelection.append(
+                (settings.value('path'), settings.value('checked', type=bool)))
         settings.endArray()
+        settings.endGroup()
 
         self.dataSources.blockSignals(True)
         # Loop over sources in reverse order: if not in paths, remove
@@ -262,3 +266,33 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
                 self.listModel.appendRow(item)
                 item.setCheckState(checkState)
         self.dataSources.blockSignals(False)
+
+    def writeSettings(self, group: str):
+        settings = QtCore.QSettings()
+        settings.setValue(
+            f'{group}/plotOptions/{self.pos}/xRange',
+            self.xAxisRange.getRange())
+
+        settings.setValue(
+            f'{group}/plotOptions/{self.pos}/windowSize',
+            self.windowSize.value())
+
+        settings.setValue(
+            f'{group}/plotOptions/{self.pos}/aggregationModes',
+            self.aggregationModes.getCurrentText())
+
+        paths = []
+        checked = []
+        for row in range(self.listModel.rowCount()):
+            item = self.listModel.index(row, 0)
+            paths.append(item.text())
+            checked.append(item.checkState() == QtCore.Qt.CheckState.Checked)
+
+        settings.beginGroup(f'{group}/plotOptions/{self.pos}')
+        size = settings.beginWriteArray('sourceSelection')
+        for idx in range(size):
+            settings.setArrayIndex(idx)
+            settings.setValue('path', paths[idx])
+            settings.setValue('checked', checked[idx])
+        settings.endArray()
+        settings.endGroup()

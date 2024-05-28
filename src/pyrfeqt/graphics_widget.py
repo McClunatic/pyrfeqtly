@@ -71,15 +71,15 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.updateAggregationModes(*aggregationModes)
 
         self.sourceSelection.clear()
-        size = settings.beginReadArray(
-            f'{group}/plotOptions/{self.title}/sourceSelection')
+        settings.beginGroup(f'{group}/plotOptions/{self.title}')
+        size = settings.beginReadArray('sourceSelection')
         for idx in range(size):
             settings.setArrayIndex(idx)
-            path = settings.value(f'{group}/plotOptions/{self.pos}/path')
-            checked = settings.value(
-                f'{group}/plotOptions/{self.pos}/checked', type=bool)
+            path = settings.value('path')
+            checked = settings.value('checked', type=bool)
             self.sourceSelection[path] = checked
         settings.endArray()
+        settings.endGroup()
 
     @QtCore.Slot(object, object)
     def onXRangeChanged(

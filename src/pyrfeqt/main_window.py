@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
 
         self.setCentralWidget(QtWidgets.QWidget())
-        self.writeDefaultSettings()
+        self.createDefaultSettings()
 
         # Create the data container object
         settings = QtCore.QSettings()
@@ -82,7 +82,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.update(path=watchDir)
             self.dataUpdated.emit()
 
-    def writeDefaultSettings(self):
+    def writeSettings(self, group: str):
+        self.data.writeSettings(group)
+        self.dataSourcesWidget().writeSettings(group)
+        for idx in range(3):
+            self.plotOptionsWidget(idx).writeSettings(group)
+        for idx in range(3):
+            self.graphicsWidget(idx).writeSettings(group)
+
+    def createDefaultSettings(self):
         settings = QtCore.QSettings()
         groups = settings.childGroups()
         if 'default' in groups:

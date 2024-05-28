@@ -55,6 +55,12 @@ class DataContainer(QtCore.QObject):
         self.historySize = historySize
         self.sampleSize = sampleSize
 
+    def writeSettings(self, group: str):
+        settings = QtCore.QSettings()
+        settings.setValue(f'{group}/data/binWidth', self.binWidth)
+        settings.setValue(f'{group}/data/historySize', self.historySize)
+        settings.setValue(f'{group}/data/sampleSize', self.sampleSize)
+
     def removeNanSamples(self):
         # Find tix mask for deletion
         delete_mask = np.all(np.isnan(self.data), axis=(0, 2))
