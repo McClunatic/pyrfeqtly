@@ -24,13 +24,13 @@ class DataOptionsGroupBox(QtWidgets.QGroupBox):
 
         self.binWidthBox = QtWidgets.QDoubleSpinBox()
         self.binWidthBox.setKeyboardTracking(False)
-        self.binWidthBox.setMinimum(0.001)
+        self.binWidthBox.setRange(1e-6, 1e6)
         self.sampleSizeBox = QtWidgets.QSpinBox()
         self.sampleSizeBox.setKeyboardTracking(False)
-        self.sampleSizeBox.setMinimum(2)
+        self.sampleSizeBox.setRange(2 ** 0, 2 ** 16)
         self.historySizeBox = QtWidgets.QSpinBox()
         self.historySizeBox.setKeyboardTracking(False)
-        self.historySizeBox.setMinimum(2)
+        self.historySizeBox.setRange(2 ** 0, 2 ** 16)
 
         layout.addRow('sample bin width', self.binWidthBox)
         layout.addRow('sample size', self.sampleSizeBox)

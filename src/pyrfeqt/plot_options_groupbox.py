@@ -68,7 +68,7 @@ class SpinBoxPair(QtWidgets.QWidget):
         self.blockSignals(False)
 
     def getRange(self):
-        return self.lbound.value(), self.rbound.value()
+        return [self.lbound.value(), self.rbound.value()]
 
 
 class ComboBoxPair(QtWidgets.QWidget):
@@ -109,7 +109,7 @@ class ComboBoxPair(QtWidgets.QWidget):
         self.spectr.setCurrentText(spectr)
 
     def getCurrentText(self):
-        return self.signal.currentText(), self.spectr.currentText()
+        return [self.signal.currentText(), self.spectr.currentText()]
 
 
 class SelectedSourcesGroupBox(QtWidgets.QWidget):
@@ -253,7 +253,8 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
         self.dataSources.blockSignals(True)
         # Loop over sources in reverse order: if not in paths, remove
         for row in range(self.dataSources.listModel.rowCount() - 1, -1, -1):
-            item = self.dataSources.listModel.index(row, 0)
+            index = self.dataSources.listModel.index(row, 0)
+            item = self.dataSources.listModel.itemFromIndex(index)
             if item.text() not in paths:
                 self.dataSources.listModel.removeRow(row)
         # Loop over paths: if not in sources, add
@@ -263,7 +264,7 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
             if not self.dataSources.listModel.findItems(source):
                 item = QtGui.QStandardItem(source)
                 item.setCheckable(True)
-                self.listModel.appendRow(item)
+                self.dataSources.listModel.appendRow(item)
                 item.setCheckState(checkState)
         self.dataSources.blockSignals(False)
 
@@ -282,17 +283,18 @@ class PlotOptionsGroupBox(QtWidgets.QGroupBox):
             self.aggregationModes.getCurrentText())
 
         paths = []
-        checked = []
-        for row in range(self.listModel.rowCount()):
-            item = self.listModel.index(row, 0)
+        checkeds = []
+        for row in range(self.dataSources.listModel.rowCount()):
+            index = self.dataSources.listModel.index(row, 0)
+            item = self.dataSources.listModel.itemFromIndex(index)
             paths.append(item.text())
-            checked.append(item.checkState() == QtCore.Qt.CheckState.Checked)
+            checkeds.append(item.checkState() == QtCore.Qt.CheckState.Checked)
 
         settings.beginGroup(f'{group}/plotOptions/{self.pos}')
-        size = settings.beginWriteArray('sourceSelection')
-        for idx in range(size):
+        settings.beginWriteArray('sourceSelection')
+        for idx, (path, checked) in enumerate(zip(paths, checkeds)):
             settings.setArrayIndex(idx)
-            settings.setValue('path', paths[idx])
-            settings.setValue('checked', checked[idx])
+            settings.setValue('path', path)
+            settings.setValue('checked', checked)
         settings.endArray()
         settings.endGroup()

@@ -123,7 +123,8 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         paths = settings.value(f'{group}/dataSources/paths', type=list)
         # Loop over sources in reverse order: if not in paths, remove
         for row in range(self.listModel.rowCount() - 1, -1, -1):
-            item = self.listModel.index(row, 0)
+            index = self.listModel.index(row, 0)
+            item = self.listModel.itemFromIndex(index)
             if item.text() not in paths:
                 self.listModel.removeRow(row)
                 self.watcher.removePath(item.text())
@@ -139,6 +140,7 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         settings = QtCore.QSettings()
         paths = []
         for row in range(self.listModel.rowCount()):
-            item = self.listModel.index(row, 0)
+            index = self.listModel.index(row, 0)
+            item = self.listModel.itemFromIndex(index)
             paths.append(item.text())
         settings.setValue(f'{group}/dataSources/paths', paths)

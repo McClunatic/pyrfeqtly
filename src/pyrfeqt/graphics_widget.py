@@ -58,6 +58,10 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         self.colorBar.setVisible(False)
         self.addItem(self.colorBar)
 
+    @property
+    def title(self):
+        return self.windowTitle()
+
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
         xRange = settings.value(

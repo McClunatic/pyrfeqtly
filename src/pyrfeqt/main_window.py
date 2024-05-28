@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MIT
 """Defines the main window class."""
 
+import uuid
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .data_container import DataContainer
@@ -88,8 +90,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dataSourcesWidget().writeSettings(group)
         for idx in range(3):
             self.plotOptionsWidget(idx).writeSettings(group)
-        for idx in range(3):
-            self.graphicsWidget(idx).writeSettings(group)
 
     def createDefaultSettings(self):
         settings = QtCore.QSettings()
@@ -131,7 +131,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.newAct.setShortcut(QtGui.QKeySequence.StandardKey.New)
         self.newAct.setStatusTip(self.tr('Create a new file'))
         # TODO: connect self.newAct to function
-        self.newAct.triggered.connect(self.createNewConfig)
 
         self.openAct = QtGui.QAction(
             QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentOpen),
@@ -158,6 +157,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr('&Edit'), self)
         self.editAct.setStatusTip(self.tr('Edit current configuration'))
         # TODO: connect self.editAct to function
+        self.editAct.triggered.connect(self.editConfig)
 
         self.prefAct = QtGui.QAction(
             self.tr('&Preferences...'), self)
@@ -238,7 +238,20 @@ class MainWindow(QtWidgets.QMainWindow):
             opts.xRangeChanged.connect(gfxs.updateXRange)
             gfxs.xRangeChanged.connect(opts.updateXRange)
 
-    def createNewConfig(self):
-        dialog = ConfigDialog('New configuration', 'default')
-        result = dialog.exec()
-        print(result)
+    def editConfig(self):
+        settings = QtCore.QSettings()
+        # Create a dummy group
+        dummyGroup = uuid.uuid4().hex
+        while dummyGroup in settings.childGroups():
+            dummyGroup = uuid.uuid4().hex
+        # Write settings to the dummy group
+        self.writeSettings(group=dummyGroup)
+        # Apply settings to configuration dialog
+        dialog = ConfigDialog('Edit configuration', dummyGroup)
+        dialog.applySettings()
+        # If accepted: serialize and deserialize settings to apply
+        if dialog.exec():
+            dialog.writeSettings()
+            self.applySettings(group=dummyGroup)
+        # Always remove the dummy group
+        settings.remove(dummyGroup)
