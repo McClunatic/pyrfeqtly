@@ -163,5 +163,4 @@ cython_debug/
 src/pyrfeqt/__about__.py
 
 # gen_samples.py test directories
-tests/cosine
-tests/sine
+tests/files

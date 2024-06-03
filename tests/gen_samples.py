@@ -6,20 +6,17 @@ import numpy as np
 
 
 def main():
-    dirs = ['sine', 'cosine']
-    sample_dirs = []
-    for dir_name in dirs:
-        sample_dir = pathlib.Path(__file__).parent / dir_name
-        sample_dir.mkdir(exist_ok=True)
-        sample_dirs.append(sample_dir)
+    sample_sources = ['sine', 'cosine']
+    sample_dir = pathlib.Path(__file__).parent / 'files'
+    sample_dir.mkdir(exist_ok=True)
 
     now = time.time()
     t = np.arange(720.)
     try:
         while True:
             dt = time.time() - now
-            for sample_dir in sample_dirs:
-                if sample_dir.name == 'sine':
+            for sample_src in sample_sources:
+                if sample_src == 'sine':
                     func = np.sin
                     freq = 0.5
                     ampl = 2
@@ -29,7 +26,7 @@ def main():
                     ampl = 1
                 stamp = datetime.datetime.now().strftime(
                     '%Y.%m.%d.%H.%M.%S.%f')
-                sample_npy = sample_dir / f'{stamp}.npy'
+                sample_npy = sample_dir / f'{sample_src}_{stamp}.npy'
                 with open(sample_npy, 'wb') as npy_file:
                     a = ampl * func(freq * (dt + t * np.pi / 180.))
                     np.save(npy_file, a)
