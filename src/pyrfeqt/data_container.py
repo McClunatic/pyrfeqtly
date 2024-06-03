@@ -128,7 +128,7 @@ class DataContainer(QtCore.QObject):
         # Loop over data and add new entries
         path = self.paths[0]
         entries = sorted(
-            pathlib.Path(path).glob(f'{source}*.npy'),
+            pathlib.Path(path).glob(f'{source}'),
             key=lambda e: e.stat().st_mtime)
         for entry in entries[-self.historySize:]:
             mtime = entry.stat().st_mtime

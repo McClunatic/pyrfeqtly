@@ -52,9 +52,9 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         self.buttonWidget = QtWidgets.QWidget()
         self.dirButton = QtWidgets.QPushButton(self.tr("Set directory"))
         self.dirButton.clicked.connect(self.setDirectory)
-        self.newButton = QtWidgets.QPushButton(self.tr("Add source"))
+        self.newButton = QtWidgets.QPushButton(self.tr("Add filter"))
         self.newButton.clicked.connect(self.addSource)
-        self.removeButton = QtWidgets.QPushButton(self.tr("Remove source(s)"))
+        self.removeButton = QtWidgets.QPushButton(self.tr("Remove filter(s)"))
         self.removeButton.clicked.connect(self.removeSources)
         self.removeButton.setEnabled(False)
         buttonLayout = QtWidgets.QHBoxLayout()
@@ -68,7 +68,6 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
         policy = self.treeView.sizePolicy()
         policy.setRetainSizeWhenHidden(True)
         self.treeView.setSizePolicy(policy)
-        self.treeView.hide()
 
         layout = (
             QtWidgets.QHBoxLayout() if horizontal else QtWidgets.QVBoxLayout())
@@ -89,16 +88,14 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
     @QtCore.Slot(QtCore.QItemSelection, QtCore.QItemSelection)
     def updateTreeView(self, selected, deselected):
         if self.listView.selectionModel().hasSelection():
-            indexes = self.listView.selectionModel().selectedIndexes()
-            rootPath = self.listModel.data(indexes[0])
-            self.treeModel.setRootPath(rootPath)
-            self.treeView.setRootIndex(self.treeModel.index(rootPath))
-
+            filters = [
+                self.listModel.itemFromIndex(idx).text()
+                for idx in self.listView.selectionModel().selectedIndexes()]
+            self.treeModel.setNameFilters(filters)
             self.removeButton.setEnabled(True)
-            self.treeView.show()
         else:
+            self.treeModel.setNameFilters([])
             self.removeButton.setEnabled(False)
-            self.treeView.hide()
 
     @QtCore.Slot()
     def setDirectory(self):
@@ -109,18 +106,22 @@ class DataSourcesGroupBox(QtWidgets.QGroupBox):
             QtWidgets.QFileDialog.Option.ShowDirsOnly)
         if source != '':
             directories = self.watcher.directories()
+            # Update watcher, directory selection, and tree view root
             if directories:
                 self.watcher.removePaths(directories)
             self.watcher.addPath(source)
             self.dirValue.setText(source)
+            self.treeModel.setRootPath(source)
+            self.treeView.setRootIndex(self.treeModel.index(source))
+            # Emit change signal
             self.pathsChanged.emit([source])
 
     @QtCore.Slot()
     def addSource(self):
         ans, accepted = QtWidgets.QInputDialog.getText(
             self,
-            self.tr("Select data source directory"),
-            self.tr("Source substring:"))
+            self.tr("Select data source filter"),
+            self.tr("Source filter:"))
         if ans != '' and accepted:
             item = QtGui.QStandardItem(ans)
             self.listModel.appendRow(item)
