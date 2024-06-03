@@ -141,7 +141,7 @@ class GraphicsWidget(pg.GraphicsLayoutWidget):
         ]
         numSources = curveData.shape[0]
         numCurves = len(self.signalPlot.curves)
-        colorIndices = [self.data.paths.index(src) for src in selection]
+        colorIndices = [self.data.sources.index(src) for src in selection]
         sm = self.signalMode
         # Add curve data for all sources
         for pix in range(numSources):

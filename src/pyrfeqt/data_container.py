@@ -4,7 +4,7 @@
 """Defines the container class for source data."""
 import pathlib
 import warnings
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from PySide6 import QtCore
@@ -31,6 +31,9 @@ class DataContainer(QtCore.QObject):
         #: List[str]
         self.paths = []
 
+        #: List[str]
+        self.sources = []
+
         #: np.ndarray of float64 of (rounded, actual) mtimes
         self.mtimes = np.empty((2, 0), dtype=float)
 
@@ -43,12 +46,14 @@ class DataContainer(QtCore.QObject):
     def applySettings(self, group: str = 'default'):
         settings = QtCore.QSettings()
         paths = settings.value(f'{group}/dataSources/paths', type=list)
+        sources = settings.value(f'{group}/dataSources/sources', type=list)
         binWidth = settings.value(f'{group}/data/binWidth', type=float)
         historySize = settings.value(f'{group}/data/historySize', type=int)
         sampleSize = settings.value(f'{group}/data/sampleSize', type=int)
 
-        timeToReset = (
+        forceReset = (
             self.paths != paths or
+            self.sources != sources or
             self.binWidth != binWidth or
             self.sampleSize != sampleSize)
 
@@ -56,13 +61,7 @@ class DataContainer(QtCore.QObject):
         self.historySize = historySize
         self.sampleSize = sampleSize
 
-        if timeToReset:
-            self.paths = []
-            self.mtimes = np.empty((2, 0), dtype=float)
-            self.mtimesSet = set()
-            self.data = np.empty((0, 0, sampleSize), dtype=float)
-            for path in paths:
-                self.update(path)
+        self.updateAll(paths, sources, sampleSize, forceReset=forceReset)
 
     def writeSettings(self, group: str):
         settings = QtCore.QSettings()
@@ -82,28 +81,55 @@ class DataContainer(QtCore.QObject):
         self.mtimes = np.delete(self.mtimes, delete_idxs, axis=1)
         self.data = np.delete(self.data, delete_idxs, axis=1)
 
-    def remove(self, path: str):
-        if path not in self.paths:
+    def remove(self, source: str):
+        if source not in self.sources:
             return
 
-        pix = self.paths.index(path)
-        self.paths.pop(pix)
+        pix = self.sources.index(source)
+        self.sources.pop(pix)
         self.data = np.delete(self.data, pix, axis=0)
         self.removeNanSamples()
 
-    def update(self, path: str):
-        # Get path index
-        pix = self.paths.index(path) if path in self.paths else len(self.paths)
+    def updateAll(
+        self,
+        paths: List[str],
+        sources: Optional[List[str]] = None,
+        sampleSize: Optional[int] = None,
+        forceReset: bool = False,
+    ):
+        sources = sources if sources is not None else self.sources
+        sampleSize = sampleSize if sampleSize is not None else self.sampleSize
 
-        # Add path to paths list if not in it
-        if pix == len(self.paths):
-            self.paths.append(path)
+        if paths != self.paths or forceReset:
+            self.paths[:] = paths
+            self.sources = []
+            self.mtimes = np.empty((2, 0), dtype=float)
+            self.mtimesSet = set()
+            self.data = np.empty((0, 0, sampleSize), dtype=float)
+
+        for source in sources:
+            self.update(source)
+
+    def update(self, source: str):
+        # Get source index
+        pix = self.sources.index(source) if source in self.sources \
+            else len(self.sources)
+
+        # Add source to sources list if not in it
+        if pix == len(self.sources):
+            self.sources.append(source)
             self.data = np.pad(
                 self.data, ((0, 1), (0, 0), (0, 0)), constant_values=np.nan)
 
+        # If no base path, return
+        if not self.paths:
+            return
+
         # Loop over data and add new entries
+        path = self.paths[0]
         entries = sorted(
-            pathlib.Path(path).glob('*.npy'), key=lambda e: e.stat().st_mtime)
+            pathlib.Path(path).glob(f'{source}*.npy'),
+            key=lambda e: e.stat().st_mtime)
         for entry in entries[-self.historySize:]:
             mtime = entry.stat().st_mtime
             mtime_bin = np.floor(np.true_divide(mtime, self.binWidth))
@@ -146,11 +172,13 @@ class DataContainer(QtCore.QObject):
             self.mtimesSet.add(mtime_bin)
             self.data[pix, tmask, :] = new_data
 
+        self.updated.emit()
+
     def latest(self, selection: List[str], mode: str, window: int):
         if self.data.size == 0:
             return np.empty((0, 0))
 
-        select_data = self.data[[path in selection for path in self.paths]]
+        select_data = self.data[[src in selection for src in self.sources]]
         if select_data.size == 0:
             return np.empty((0, 0))
 

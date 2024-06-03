@@ -4,6 +4,7 @@
 """Defines the main window class."""
 
 import uuid
+from typing import List
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -31,8 +32,6 @@ QtCore.QSettings.setDefaultFormat(QtCore.QSettings.Format.IniFormat)
 
 
 class MainWindow(QtWidgets.QMainWindow):
-
-    dataUpdated = QtCore.Signal()
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -82,9 +81,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plotOptionsWidget(idx).applySettings(group)
         for idx in range(3):
             self.graphicsWidget(idx).applySettings(group)
-        for watchDir in self.dataSourcesWidget().watcher.directories():
-            self.data.update(path=watchDir)
-            self.dataUpdated.emit()
 
     def writeSettings(self, group: str):
         self.data.writeSettings(group)
@@ -111,6 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.endGroup()
         settings.beginGroup('dataSources')
         settings.setValue('paths', [])
+        settings.setValue('sources', [])
         settings.endGroup()
         settings.beginGroup('data')
         settings.setValue('binWidth', BIN_WIDTH)
@@ -120,9 +117,18 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.endGroup()
 
     @QtCore.Slot(str)
-    def updateData(self, watchDir: str):
-        self.data.update(path=watchDir)
-        self.dataUpdated.emit()
+    def insertData(self, source: str):
+        self.data.update(source=source)
+
+    @QtCore.Slot(str)
+    def removeData(self, source: str):
+        self.data.remove(source=source)
+
+    @QtCore.Slot(str)
+    def updateData(self, paths: str | List[str]):
+        if isinstance(paths, str):
+            paths = [paths]
+        self.data.updateAll(paths=paths)
 
     def _createFileActions(self):
         self.newAct = QtGui.QAction(
@@ -239,8 +245,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.centralWidget().setLayout(layout)
 
     def _connectSignalsAndSlots(self):
-        self.dataUpdated.connect(self.data.updated)
-        self.dataSourcesBox.sourceInserted.connect(self.updateData)
+        self.dataSourcesBox.pathsChanged.connect(self.updateData)
+        self.dataSourcesBox.sourceInserted.connect(self.insertData)
+        self.dataSourcesBox.sourceRemoved.connect(self.removeData)
         self.dataSourcesBox.sourceDataChanged.connect(self.updateData)
         for idx in range(3):
             opts = self.plotOptionsBox.widget(idx)
