@@ -2,8 +2,8 @@
 ARG VARIANT=3.12-slim-bookworm
 FROM python:${VARIANT}
 
-# install hatch
-RUN apt update && apt install -y wget xz-utils
+# install git and hatch
+RUN apt update && apt install -y git wget xz-utils
 RUN wget https://github.com/pypa/hatch/releases/latest/download/hatch-x86_64-unknown-linux-gnu.tar.gz -O - \
     | tar -xz -C /usr/local/bin && hatch --version
 
