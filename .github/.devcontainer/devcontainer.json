@@ -1,0 +1,7 @@
+{
+  "name": "pyrfeqtly",
+  "build": {
+    "dockerfile": "./Dockerfile",
+    "context": "."
+  }
+}
