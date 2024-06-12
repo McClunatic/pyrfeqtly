@@ -2,6 +2,7 @@ name: Dev Container Build and Push Image
 
 env:
   ACTIONS_RUNNER_DEBUG: true
+  GH_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
 
 on: [push]
 jobs:
