@@ -1,5 +1,8 @@
 name: Dev Container Build and Push Image
 
+env:
+  ACTIONS_RUNNER_DEBUG: true
+
 on: [push]
 jobs:
   build-and-push:
