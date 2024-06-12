@@ -17,10 +17,13 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Capture lowercase github.repository
+      run: |
+        echo "IMAGE_NAME=${GITHUB_REPOSITORY@L}" >> ${GITHUB_ENV}
     - name: Pre-build dev container image
       uses: devcontainers/ci@v0.2
       with:
         subFolder: .github
-        imageName: ghcr.io/${{ github.repository }}
-        cacheFrom: ghcr.io/${{ github.repository }}
+        imageName: ghcr.io/${{ env.IMAGE_NAME }}
+        cacheFrom: ghcr.io/${{ env.IMAGE_NAME }}
         push: always
