@@ -1,0 +1,5 @@
+{
+  "name": "pyrfeqtly",
+  "image": "ghcr.io/mcclunatic/pyrfeqtly:latest",
+  "onCreateCommand": "hatch env create"
+}
