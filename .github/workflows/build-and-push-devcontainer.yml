@@ -2,7 +2,6 @@ name: Dev Container Build and Push Image
 
 env:
   ACTIONS_RUNNER_DEBUG: true
-  GH_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
 
 on: [push]
 jobs:
@@ -17,7 +16,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.REGISTRY_TOKEN }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Pre-build dev container image
       uses: devcontainers/ci@v0.2
       with:
